@@ -30,7 +30,7 @@
 ;; character mappings of recent commands, matching the resulting
 ;; string against a list of user-defined regexps that correspond to
 ;; command sequences, and finally suggesting a better way to do things
-;; when a match is found. re-suggest looks stricly at sequences of
+;; when a match is found. re-suggest looks strictly at sequences of
 ;; commands, not sequences of keys, and so avoids most of the
 ;; complications resulting from different keybindings in different
 ;; modes. This is considered a feature.
@@ -39,8 +39,8 @@
 ;; regular expression engine to detect suspect command sequences
 ;; rather than write our own pattern detection engine.
 ;;
-;; The disadvantage is that and that it can't match any command
-;; pattern that a regexp isn't powerful enough to match.
+;; The disadvantage is that it can't match any command pattern that a
+;; regexp isn't powerful enough to match.
 
 ;; Installation:
 ;;
@@ -76,6 +76,13 @@
 ;;    can recognize:
 ;;
 ;;    (setq re-suggest-cmd-string-length foo)
+;;
+
+;; TODO:
+;;
+;;  - Add a lot more suggestions. Use emacswiki's command suggestion
+;;    page.
+;;
 
 ;;; Code:
 
