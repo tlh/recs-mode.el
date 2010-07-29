@@ -1,0 +1,3 @@
+re-suggest.el -- A simple regexp-based command-suggestion minor mode for emacs.
+
+See the comments in re-suggest.el for installation and usage instructions.

@@ -1,0 +1,171 @@
+;;; re-suggest.el -- a simple regexp-based command suggestion mode
+
+;; Copyright (C) 2010 tlh <thunkout@gmail.com>
+
+;; File:      re-suggest.el
+;; Author:    tlh <thunkout@gmail.com>
+;; Created:   2010-07-29
+;; Version:   0.1
+;; Keywords:  command suggestion regexp
+
+;; This program is free software; you can redistribute it and/or
+;; modify it under the terms of the GNU General Public License as
+;; published by the Free Software Foundation; either version 2 of
+;; the License, or (at your option) any later version.
+
+;; This program is distributed in the hope that it will be
+;; useful, but WITHOUT ANY WARRANTY; without even the implied
+;; warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+;; PURPOSE.  See the GNU General Public License for more details.
+
+;; You should have received a copy of the GNU General Public
+;; License along with this program; if not, write to the Free
+;; Software Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+;; MA 02111-1307 USA
+
+;; Commentary:
+;;
+;; re-suggest.el is a simple command suggestion minor-mode. It works
+;; by mapping commands to characters, creating a string out of the
+;; character mappings of recent commands, matching the resulting
+;; string against a list of user-defined regexps that correspond to
+;; command sequences, and finally suggesting a better way to do things
+;; when a match is found. re-suggest looks stricly at sequences of
+;; commands, not sequences of keys, and so avoids most of the
+;; complications resulting from different keybindings in different
+;; modes. This is considered a feature.
+;;
+;; The advantage of this approach is that we can use the built-in
+;; regular expression engine to detect suspect command sequences
+;; rather than write our own pattern detection engine.
+;;
+;; The disadvantage is that and that it can't match any command
+;; pattern that a regexp isn't powerful enough to match.
+
+;; Installation:
+;;
+;;  - put `re-suggest.el' somewhere on your emacs load path
+;;
+;;  - add these lines to your .emacs file:
+;;    (require 're-suggest)
+;;    (re-suggest-mode t)
+;;
+
+;; Configuration:
+;;
+;;  - You'll need to set the mapping of commands to character strings
+;;    to your liking. To do so, set the value of
+;;    `re-suggest-cmd-char-alist' to an alist of command to
+;;    character-string mappings like so:
+;;
+;;    (setq re-suggest-cmd-char-alist
+;;      '((newline         . "l")
+;;        (previous-line   . "p")
+;;        (next-line       . "n")))
+;;
+;;  - You'll also need to set the mapping of command sequence regexps
+;;    to suggestion messages. To do so, set the value of
+;;    `re-suggest-regexp-cmd-seq-alist' to an alist of
+;;    command-sequence-regexp to suggestion-message mappings like so:
+;;
+;;    (defvar re-suggest-regexp-cmd-seq-alist
+;;      '(("lpe" . "You should use `open-line' to do that.")
+;;        ("ov"  . "You should use `scroll-other-window' to do that.")))
+;;
+;;  - To set the maximum length of the command sequences re-suggest
+;;    can recognize:
+;;
+;;    (setq re-suggest-cmd-string-length foo)
+
+;;; Code:
+
+(eval-when-compile
+  (require 'cl))
+
+(defvar re-suggest-cmd-char-alist
+  '((newline                . "l")
+    (previous-line          . "p")
+    (next-line              . "n")
+    (move-beginning-of-line . "a")
+    (move-end-of-line       . "e")
+    (other-window           . "o")
+    (scroll-up              . "v")
+    (scroll-down            . "V")
+    (delete-window          . "d"))
+  "An alist mapping commands to character strings. It's used to
+convert sequences of commands into strings. The \" \" character
+is reserved for commands not present in this list.")
+
+(defvar re-suggest-cmd-string-length 20
+  "Length of `re-suggest-cmd-string'.")
+
+(defun re-suggest-make-empty-cmd-string ()
+  "Makes and empty cmd-string of length
+`re-suggest-cmd-string-length'."
+  (make-string re-suggest-cmd-string-length ? ))
+
+(defvar re-suggest-cmd-string (re-suggest-make-empty-cmd-string)
+  "A string composed of characters that map to commands in
+  `re-suggest-cmd-char-alist'.")
+
+(defvar re-suggest-regexp-cmd-seq-alist
+  '(("lpe" . "You should use `open-line' to do that.")
+    ("ov"  . "You should use `scroll-other-window' to do that."))
+  "An alist mapping regexps to suggestion messages.")
+
+(defun re-suggest-verify-cmd-string ()
+  "Verifies that `re-suggest-cmd-string' exists, is a string, and
+is of the length `re-suggest-cmd-string-length'."
+  (unless (and re-suggest-cmd-string
+               (stringp re-suggest-cmd-string)
+               (= (length re-suggest-cmd-string)
+                  re-suggest-cmd-string-length))
+    (setq re-suggest-cmd-string (re-suggest-make-empty-cmd-string)))
+  re-suggest-cmd-string)
+
+(defun re-suggest-record-cmd ()
+  "Appends to `re-suggest-cmd-string' the character that
+  `this-command' maps to in `re-suggest-cmd-char-alist', or \" \"
+  if no match exists."
+  (re-suggest-verify-cmd-string)
+  (setq re-suggest-cmd-string
+        (concat (subseq re-suggest-cmd-string 1)
+                (or (cdr (assoc this-command re-suggest-cmd-char-alist)) " "))))
+
+(defun re-suggest-detect-match ()
+  "Attempts to match `re-suggest-cmd-string' against all the
+regexps in `re-suggest-regexp-cmd-seq-alist'. Returns the
+corresponging message if a match is found, or nil otherwise."
+  (catch 'result
+    (let (case-fold-search)
+      (mapc (lambda (seq) (and (string-match (car seq) re-suggest-cmd-string)
+                          (throw 'result (cdr seq))))
+            re-suggest-regexp-cmd-seq-alist)
+      nil)))
+
+(defun re-suggest-hook ()
+  "Main re-suggest Hook that gets added to `post-command-hook'."
+  (re-suggest-record-cmd)
+  (let ((msg (re-suggest-detect-match)))
+    (when msg
+      (message msg)
+      (ding)
+      (setq re-suggest-cmd-string (re-suggest-make-empty-cmd-string)))))
+
+;;;###autoload
+(define-minor-mode re-suggest-mode
+  "Toggle re-suggest minor mode.
+
+If ARG is null, toggle re-suggest.
+If ARG is a number greater than zero, turn on re-suggest.
+Otherwise, turn off re-suggest."
+  :init-value nil
+  (cond
+   (noninteractive
+    (setq re-suggest-mode nil)
+    (remove-hook 'post-command-hook 're-suggest-hook))
+   (re-suggest-mode
+    (add-hook 'post-command-hook 're-suggest-hook))
+   (t (remove-hook 'post-command-hook 're-suggest-hook))))
+
+(provide 're-suggest)
