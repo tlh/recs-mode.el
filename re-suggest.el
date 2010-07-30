@@ -35,12 +35,11 @@
 ;; complications resulting from different keybindings in different
 ;; modes. This is considered a feature.
 ;;
-;; The advantage of this approach is that we can use the built-in
-;; regular expression engine to detect suspect command sequences
-;; rather than write our own pattern detection engine.
+;; The advantage of this approach is that we can match any command
+;; sequence that a regexp is powerful enough to match.
 ;;
-;; The disadvantage is that it can't match any command pattern that a
-;; regexp isn't powerful enough to match.
+;; The disadvantage of this approach is that we can only match any
+;; command sequence that a regexp is powerful enough to match.
 
 ;; Installation:
 ;;
