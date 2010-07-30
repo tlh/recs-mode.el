@@ -237,7 +237,7 @@ Otherwise, turn off re-suggest."
     (setq re-suggest-mode nil))
    (re-suggest-mode
     (add-hook 'post-command-hook 're-suggest-hook)
-    (setq re-sugguest-mode t))
+    (setq re-suggest-mode t))
    (t
     (remove-hook 'post-command-hook 're-suggest-hook)
     (setq re-suggest-mode nil))))
