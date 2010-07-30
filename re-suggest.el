@@ -25,28 +25,36 @@
 
 ;; Commentary:
 ;;
+;; Say you discover a new, more efficient sequence of commands to do
+;; something. You want to start using it, but your muscle memory
+;; continues to do it the old way. Before long you forget the new way,
+;; and continue doing things the old way. With re-suggest, emacs can
+;; recognize the old pattern and suggest the new the pattern whenever
+;; you use it, training you to be a better emacs user.
+;;
 ;; re-suggest.el is a simple command suggestion minor-mode. It works
 ;; by mapping commands to characters, creating a string out of the
 ;; character mappings of recent commands, matching the resulting
 ;; string against a list of user-defined regexps that correspond to
 ;; command sequences, and finally suggesting a better way to do things
 ;; when a match is found. re-suggest looks strictly at sequences of
-;; commands, not sequences of keys, and so avoids most of the
-;; complications resulting from different keybindings in different
-;; modes. This is considered a feature.
+;; commands, not sequences of keystrokes, avoiding the complications
+;; resulting from different keybindings in different modes. This is
+;; considered a feature.
 ;;
 ;; The advantage of this approach is that we can match any command
 ;; sequence that a regexp is powerful enough to match.
 ;;
-;; The disadvantage of this approach is that we can only match any
-;; command sequence that a regexp is powerful enough to match.
+;; The disadvantage of this approach is that we can only match command
+;; sequences that a regexp is powerful enough to match.
 
 ;; Features:
 ;;
-;;  - Define command patterns about which to be warned as regexps
+;;  - Definition of command patterns to be warned about as standard
+;;    emacs regexps
 ;;
-;;  - Timer to set the minimum interval between suggestions per the
-;;    emacs TODO list ("C-h C-t") suggestions.
+;;  - A timer to set the minimum interval between suggestions, per the
+;;    emacs TODO list ("C-h C-t") guideline.
 ;;
 
 ;; Installation:
@@ -97,37 +105,44 @@
 ;;  - Add a lot more suggestions. Use emacswiki's command suggestion
 ;;    page.
 ;;
+;;  - Mode specific command regexp matching
+;;
 
 ;;; Code:
 
 (eval-when-compile
   (require 'cl))
 
+;; These commands won't be in any order that makes sense. I assigned
+;; characters to them mnemonically at the beginning, before running
+;; out of good ones, then alphabetized based on those characters to
+;; better see which ones were available.
 (defvar re-suggest-cmd-char-alist
-  '((newline                . "l")
-    (previous-line          . "p")
-    (next-line              . "n")
-    (forward-char           . "f")
+  '((move-beginning-of-line . "a")
     (backward-char          . "b")
-    (forward-word           . "F")
     (backward-word          . "B")
+    (set-mark-command       . "c")
+    (delete-window          . "d")
+    (move-end-of-line       . "e")
+    (forward-char           . "f")
+    (forward-word           . "F")
+    (kill-ring-save         . "g")
+    (indent-for-tab-command . "i")
+    (kill-line              . "k")
+    (newline                . "l")
+    (next-line              . "n")
+    (other-window           . "o")
+    (previous-line          . "p")
+    (beginning-of-buffer    . "r")
+    (eval-last-sexp         . "s")
     (kill-word              . "t")
     (backward-kill-word     . "T")
-    (kill-line              . "k")
-    (move-beginning-of-line . "a")
-    (move-end-of-line       . "e")
-    (other-window           . "o")
     (scroll-up              . "v")
     (scroll-down            . "V")
-    (delete-window          . "d")
-    (backward-paragraph     . "z")
+    (end-of-buffer          . "w")
     (forward-paragraph      . "x")
-    (set-mark-command       . "c")
-    (eval-last-sexp         . "s")
-    (indent-for-tab-command . "i")
     (yank                   . "y")
-    (beginning-of-buffer    . "r")
-    (end-of-buffer          . "w"))
+    (backward-paragraph     . "z"))
   "An alist mapping commands to character strings. It's used to
 convert sequences of commands into strings. The \" \" character
 is reserved for commands not present in this list.
@@ -144,14 +159,15 @@ You should modify this list as you see fit.")
     ("ov"                        . "You should use `scroll-other-window' to do that.")
     ("FFT"                       . "You should use `kill-word' to do that.")
     ("BBt"                       . "You should use `backward-kill-word' to do that.")
-    ("n\\{20\\}"                 . "You should use more efficient navigation, like forward-paragraph.")
-    ("p\\{20\\}"                 . "You should use more efficient navigation, like backward-paragraph.")
-    ("f\\{20\\}"                 . "You should use more efficient navigation, like forward-word.")
-    ("b\\{20\\}"                 . "You should use more efficient navigation, like backward-word."))
+    ("n\\{20\\}"                 . "You should use more efficient navigation, like `forward-paragraph'.")
+    ("p\\{20\\}"                 . "You should use more efficient navigation, like `backward-paragraph'.")
+    ("f\\{20\\}"                 . "You should use more efficient navigation, like `forward-word'.")
+    ("b\\{20\\}"                 . "You should use more efficient navigation, like `backward-word'."))
   "An alist mapping command sequence regexps to suggestion
   messages.
 
 You should modify this list as you see fit.")
+
 
 (defvar re-suggest-last-suggestion-time nil
   "System seconds at which the last suggestion occured.")
@@ -217,12 +233,35 @@ corresponging message if a match is found, or nil otherwise."
             re-suggest-regexp-cmd-seq-alist)
       nil)))
 
+(defun re-suggest-extract-quoted (str)
+  "Extract and intern a list of `foo' quoted strings from STR."
+  (let ((pos 0) (acc))
+    (while (string-match "`\\(.*?\\)'" str pos)
+      (push (intern (match-string 1 str)) acc)
+      (setq pos (match-end 1)))
+    (nreverse acc)))
+
+(defun re-suggest-get-bindings (msg)
+  "Calls `re-suggest-extract-commands' to extract the quoted
+  command names from MSG, then builds a list of bindings for each
+  of these commands. Returns a list of command and binding
+  strings."
+  (mapcar (lambda (cmd)
+            (let ((keys (where-is-internal (or (command-remapping cmd) cmd))))
+              (cond ((not (commandp cmd))
+                     (format "%s is actually not a command." cmd))
+                    (keys
+                     (concat (format "%s is bound to " cmd)
+                             (mapconcat 'key-description keys ", ")))
+                    (t (format "%s has no keybindings." cmd)))))
+          (re-suggest-extract-quoted msg)))
+
 (defun re-suggest-hook ()
   "Main re-suggest Hook that gets added to `post-command-hook'."
   (re-suggest-record-cmd)
   (let ((msg (re-suggest-detect-match)))
     (when (and msg (re-suggest-check-time))
-      (message msg)
+      (message (mapconcat 'identity (cons msg (re-suggest-get-bindings msg)) "\n"))
       (ding)
       (setq re-suggest-cmd-string (re-suggest-make-empty-cmd-string)))))
 
