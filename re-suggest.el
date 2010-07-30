@@ -92,17 +92,30 @@
   '((newline                . "l")
     (previous-line          . "p")
     (next-line              . "n")
+    (forward-char           . "f")
+    (backward-char          . "b")
+    (forward-word           . "F")
+    (backward-word          . "B")
+    (kill-word              . "t")
+    (backward-kill-word     . "T")
+    (kill-line              . "k")
     (move-beginning-of-line . "a")
     (move-end-of-line       . "e")
     (other-window           . "o")
     (scroll-up              . "v")
     (scroll-down            . "V")
-    (delete-window          . "d"))
+    (delete-window          . "d")
+    (backward-paragraph     . "z")
+    (forward-paragraph      . "x")
+    (set-mark-command       . "c")
+    (eval-last-sexp         . "s")
+    (indent-for-tab-command . "i")
+    (yank                   . "y"))
   "An alist mapping commands to character strings. It's used to
 convert sequences of commands into strings. The \" \" character
 is reserved for commands not present in this list.")
 
-(defvar re-suggest-cmd-string-length 20
+(defvar re-suggest-cmd-string-length 100
   "Length of `re-suggest-cmd-string'.")
 
 (defun re-suggest-make-empty-cmd-string ()
@@ -114,10 +127,23 @@ is reserved for commands not present in this list.")
   "A string composed of characters that map to commands in
   `re-suggest-cmd-char-alist'.")
 
+;; return-tab
+
 (defvar re-suggest-regexp-cmd-seq-alist
-  '(("lpe" . "You should use `open-line' to do that.")
-    ("ov"  . "You should use `scroll-other-window' to do that."))
-  "An alist mapping regexps to suggestion messages.")
+  '(("lp"                        . "You should use `open-line' to do that.")
+    ("[zx]c[xz]"                 . "You should use `mark-paragraph' to do that.")
+    ("xs"                        . "You should use `eval-defun' to do that.")
+    ("li"                        . "You should use `newline-and-indent' to do that.")
+    ("kkny"                      . "You should use `transpose-lines' to do that.")
+    ("ov"                        . "You should use `scroll-other-window' to do that.")
+    ("FFT"                       . "You should use `kill-word' to do that.")
+    ("BBt"                       . "You should use `backward-kill-word' to do that.")
+    ("n\\{20\\}"                 . "You should use more efficient navigation, like forward-paragraph.")
+    ("p\\{20\\}"                 . "You should use more efficient navigation, like backward-paragraph.")
+    ("f\\{20\\}"                 . "You should use more efficient navigation, like forward-word.")
+    ("b\\{20\\}"                 . "You should use more efficient navigation, like backward-word."))
+  "An alist mapping command sequence regexps to suggestion
+  messages.")
 
 (defun re-suggest-verify-cmd-string ()
   "Verifies that `re-suggest-cmd-string' exists, is a string, and
@@ -131,12 +157,13 @@ is of the length `re-suggest-cmd-string-length'."
 
 (defun re-suggest-record-cmd ()
   "Appends to `re-suggest-cmd-string' the character that
-  `this-command' maps to in `re-suggest-cmd-char-alist', or \" \"
-  if no match exists."
+  `this-original-command' maps to in `re-suggest-cmd-char-alist',
+  or \" \" if no match exists."
   (re-suggest-verify-cmd-string)
   (setq re-suggest-cmd-string
         (concat (subseq re-suggest-cmd-string 1)
-                (or (cdr (assoc this-command re-suggest-cmd-char-alist)) " "))))
+                (or (cdr (assoc this-original-command re-suggest-cmd-char-alist))
+                    " "))))
 
 (defun re-suggest-detect-match ()
   "Attempts to match `re-suggest-cmd-string' against all the
