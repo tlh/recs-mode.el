@@ -87,6 +87,10 @@
 ;;      '(("lpe" . "You should use `open-line' to do that.")
 ;;        ("ov"  . "You should use `scroll-other-window' to do that.")))
 ;;
+;;    Any command names quoted `like-this' in suggestion messages will
+;;    have their keybindings included on separate lines in the
+;;    suggestion message.
+;;
 ;;  - To set the maximum length of the command sequences re-suggest
 ;;    can recognize:
 ;;
@@ -102,10 +106,8 @@
 
 ;; TODO:
 ;;
-;;  - Add a lot more suggestions. Use emacswiki's command suggestion
-;;    page.
-;;
-;;  - Mode specific command regexp matching
+;;  - Add more suggestions.
+;;  - Add mode specific command regexp matching.
 ;;
 
 ;;; Code:
