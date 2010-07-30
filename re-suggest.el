@@ -115,20 +115,6 @@
 convert sequences of commands into strings. The \" \" character
 is reserved for commands not present in this list.")
 
-(defvar re-suggest-cmd-string-length 100
-  "Length of `re-suggest-cmd-string'.")
-
-(defun re-suggest-make-empty-cmd-string ()
-  "Makes and empty cmd-string of length
-`re-suggest-cmd-string-length'."
-  (make-string re-suggest-cmd-string-length ? ))
-
-(defvar re-suggest-cmd-string (re-suggest-make-empty-cmd-string)
-  "A string composed of characters that map to commands in
-  `re-suggest-cmd-char-alist'.")
-
-;; return-tab
-
 (defvar re-suggest-regexp-cmd-seq-alist
   '(("lp"                        . "You should use `open-line' to do that.")
     ("[zx]c[xz]"                 . "You should use `mark-paragraph' to do that.")
@@ -144,6 +130,18 @@ is reserved for commands not present in this list.")
     ("b\\{20\\}"                 . "You should use more efficient navigation, like backward-word."))
   "An alist mapping command sequence regexps to suggestion
   messages.")
+
+(defvar re-suggest-cmd-string-length 100
+  "Length of `re-suggest-cmd-string'.")
+
+(defun re-suggest-make-empty-cmd-string ()
+  "Makes and empty cmd-string of length
+`re-suggest-cmd-string-length'."
+  (make-string re-suggest-cmd-string-length ? ))
+
+(defvar re-suggest-cmd-string (re-suggest-make-empty-cmd-string)
+  "A string composed of characters that map to commands in
+  `re-suggest-cmd-char-alist'.")
 
 (defun re-suggest-verify-cmd-string ()
   "Verifies that `re-suggest-cmd-string' exists, is a string, and
@@ -195,10 +193,13 @@ Otherwise, turn off re-suggest."
   :init-value nil
   (cond
    (noninteractive
-    (setq re-suggest-mode nil)
-    (remove-hook 'post-command-hook 're-suggest-hook))
+    (remove-hook 'post-command-hook 're-suggest-hook)
+    (setq re-suggest-mode nil))
    (re-suggest-mode
-    (add-hook 'post-command-hook 're-suggest-hook))
-   (t (remove-hook 'post-command-hook 're-suggest-hook))))
+    (add-hook 'post-command-hook 're-suggest-hook)
+    (setq re-sugguest-mode t))
+   (t
+    (remove-hook 'post-command-hook 're-suggest-hook)
+    (setq re-suggest-mode nil))))
 
 (provide 're-suggest)
