@@ -41,6 +41,14 @@
 ;; The disadvantage of this approach is that we can only match any
 ;; command sequence that a regexp is powerful enough to match.
 
+;; Features:
+;;
+;;  - Define command patterns about which to be warned as regexps
+;;
+;;  - Timer to set the minimum interval between suggestions per the
+;;    emacs TODO list ("C-h C-t") suggestions.
+;;
+
 ;; Installation:
 ;;
 ;;  - put `re-suggest.el' somewhere on your emacs load path
@@ -75,6 +83,13 @@
 ;;    can recognize:
 ;;
 ;;    (setq re-suggest-cmd-string-length foo)
+;;
+;;  - You can set the minimum number of seconds between suggestions by
+;;    setting `re-suggest-suggestion-interval':
+;;
+;;    (setq re-suggest-suggestion-interval 60)
+;;
+;;    If set to nil, suggestions will be made for every match.
 ;;
 
 ;; TODO:
@@ -113,7 +128,9 @@
     (yank                   . "y"))
   "An alist mapping commands to character strings. It's used to
 convert sequences of commands into strings. The \" \" character
-is reserved for commands not present in this list.")
+is reserved for commands not present in this list.
+
+You should modify this list as you see fit.")
 
 (defvar re-suggest-regexp-cmd-seq-alist
   '(("lp"                        . "You should use `open-line' to do that.")
@@ -129,7 +146,30 @@ is reserved for commands not present in this list.")
     ("f\\{20\\}"                 . "You should use more efficient navigation, like forward-word.")
     ("b\\{20\\}"                 . "You should use more efficient navigation, like backward-word."))
   "An alist mapping command sequence regexps to suggestion
-  messages.")
+  messages.
+
+You should modify this list as you see fit.")
+
+(defvar re-suggest-last-suggestion-time nil
+  "System seconds at which the last suggestion occured.")
+
+(defvar re-suggest-suggestion-interval 10
+  "Minimum number of seconds between suggestions. If nil, no time
+  checking is performed")
+
+(defun re-suggest-check-time ()
+  "Sets `re-suggest-last-suggestion-time' with and returns the
+current system time in seconds if
+`re-suggest-suggestion-interval' is nil, if
+`re-suggest-last-suggestion-time' is nil or if the sum of the
+previous two has been superceded. Returns nil otherwise."
+  (destructuring-bind (t0 t1 t2) (current-time)
+    (let ((secs (+ (* t0 (expt 2 16)) t1 (/ t2 1000000.0))))
+      (when (or (not re-suggest-suggestion-interval)
+                (not re-suggest-last-suggestion-time)
+                (>= secs (+ re-suggest-last-suggestion-time
+                            re-suggest-suggestion-interval)))
+        (setq re-suggest-last-suggestion-time secs)))))
 
 (defvar re-suggest-cmd-string-length 100
   "Length of `re-suggest-cmd-string'.")
@@ -178,7 +218,7 @@ corresponging message if a match is found, or nil otherwise."
   "Main re-suggest Hook that gets added to `post-command-hook'."
   (re-suggest-record-cmd)
   (let ((msg (re-suggest-detect-match)))
-    (when msg
+    (when (and msg (re-suggest-check-time))
       (message msg)
       (ding)
       (setq re-suggest-cmd-string (re-suggest-make-empty-cmd-string)))))
