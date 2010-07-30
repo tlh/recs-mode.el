@@ -125,7 +125,9 @@
     (set-mark-command       . "c")
     (eval-last-sexp         . "s")
     (indent-for-tab-command . "i")
-    (yank                   . "y"))
+    (yank                   . "y")
+    (beginning-of-buffer    . "r")
+    (end-of-buffer          . "w"))
   "An alist mapping commands to character strings. It's used to
 convert sequences of commands into strings. The \" \" character
 is reserved for commands not present in this list.
@@ -134,7 +136,8 @@ You should modify this list as you see fit.")
 
 (defvar re-suggest-regexp-cmd-seq-alist
   '(("lp"                        . "You should use `open-line' to do that.")
-    ("[zx]c[xz]"                 . "You should use `mark-paragraph' to do that.")
+    ("zcx\\|xcz"                 . "You should use `mark-paragraph' to do that.")
+    ("rcw\\|wcr"                 . "You should use `mark-whole-buffer' to do that.")
     ("xs"                        . "You should use `eval-defun' to do that.")
     ("li"                        . "You should use `newline-and-indent' to do that.")
     ("kkny"                      . "You should use `transpose-lines' to do that.")
