@@ -236,7 +236,7 @@ corresponging message if a match is found, or nil otherwise."
       nil)))
 
 (defun re-suggest-extract-quoted (str)
-  "Extract and intern a list of `foo' quoted strings from STR."
+  "Extract from STR and intern a list of strings quoted like `this'."
   (let ((pos 0) (acc))
     (while (string-match "`\\(.*?\\)'" str pos)
       (push (intern (match-string 1 str)) acc)
@@ -244,7 +244,7 @@ corresponging message if a match is found, or nil otherwise."
     (nreverse acc)))
 
 (defun re-suggest-get-bindings (msg)
-  "Calls `re-suggest-extract-commands' to extract the quoted
+  "Calls `re-suggest-extract-quoted' to extract the quoted
   command names from MSG, then builds a list of bindings for each
   of these commands. Returns a list of command and binding
   strings."
