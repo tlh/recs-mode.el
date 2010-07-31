@@ -122,11 +122,18 @@
   "Character string used to represent commands no defined in
   `re-suggest-cmd-char-alist'.")
 
-;; These commands won't be in any order that makes sense. I assigned
-;; characters to them mnemonically at the beginning, before running
-;; out of good ones, then alphabetized based on those characters to
-;; better see which characters were available.
+(defvar re-suggest-suggestion-interval nil
+  "Minimum number of seconds between suggestions. If nil, no time
+  checking is performed")
+
+(defvar re-suggest-ding-on-suggestion t
+  "Determines whether to call `ding' when a suggestion is made.")
+
 (defvar re-suggest-cmd-char-alist
+  ;; These commands won't be in any order that makes sense. I assigned
+  ;; characters to them mnemonically at the beginning, before running
+  ;; out of good ones, then alphabetized based on those characters to
+  ;; better see which characters were available.
   '((move-beginning-of-line      . "a")
     (backward-char               . "b")
     (backward-word               . "B")
@@ -180,10 +187,6 @@ You should modify this list as you see fit.")
 
 (defvar re-suggest-last-suggestion-time nil
   "System seconds at which the last suggestion occured.")
-
-(defvar re-suggest-suggestion-interval nil
-  "Minimum number of seconds between suggestions. If nil, no time
-  checking is performed")
 
 (defun re-suggest-current-time ()
   "Returns the current system time in seconds."
@@ -301,10 +304,10 @@ string from the command names."
     (re-suggest-record-cmd)
     (let ((match (re-suggest-detect-match)))
       (when match
-        (ding)
         (re-suggest-message match)
         (re-suggest-reset-cmd-string)
-        (re-suggest-record-time)))))
+        (re-suggest-record-time)
+        (when re-suggest-ding-on-suggestion (ding))))))
 
 (defun re-suggest-enable (enable)
   "Enables `re-suggest-mode' when ENABLE is t, disables
