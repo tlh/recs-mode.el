@@ -305,69 +305,33 @@ corresponging message if a match is found, nil otherwise."
              (throw 'result (cons (match-string 0 recs-cmd-string)
                                   pattern)))))))
 
-(defun recs-extract-quoted (str)
-  "Extracts and interns a list of strings quoted like `this' from
-STR."
-  (let ((pos 0) (acc))
-    (while (string-match "`\\(.*?\\)'" str pos)
-      (push (intern (match-string 1 str)) acc)
-      (setq pos (match-end 1)))
-    (nreverse acc)))
-
-(defun recs-get-bindings (msg)
-  "Calls `recs-extract-quoted' to extract the quoted
-  command names from MSG, then builds a list of bindings for each
-  of these commands. Returns a list of command and binding
-  strings."
-  (mapcar (lambda (cmd)
-            (let ((keys (where-is-internal (or (command-remapping cmd) cmd))))
-              (cond ((not (commandp cmd))
-                     (format "%s is actually not a command." cmd))
-                    (keys
-                     (concat (format "`%s' is bound to: " cmd)
-                             (mapconcat 'key-description keys ", ")))
-                    (t (format "%s has no keybindings." cmd)))))
-          (recs-extract-quoted msg)))
-
-(defun recs-trigger-str (match-str)
-  "Does a reverse lookup on `recs-cmd-char-alist' from the
-chars in match-str, constructing a string from the command
-names."
-  (mapconcat (lambda (char)
-               (catch 'result
-                 (dolist (elt recs-cmd-char-alist)
-                   (when (string= (cdr elt) (char-to-string char))
-                     (throw 'result (format "`%s'" (car elt)))))))
-             match-str
-             ", "))
-
-(defun recs-suggestion (match)
-  "Constructs from MATCH and returns the suggestion string."
-  (destructuring-bind (match-str pattern . msg) match
-    (format "re-suggest -- Press `q' to exit.\n\nYou entered the command sequence:\n\n[%s]\n\n%s\n\n%s"
-            (recs-trigger-str match-str)
-            msg
-            (mapconcat 'identity (recs-get-bindings msg) "\n"))))
-
-(defun recs-goto-suggestion-buffer (suggestion)
-  "Creates the suggestion buffer. Buffer is dismissable with `q'."
-  (save-excursion
-    (save-window-excursion
-      (pop-to-buffer "*recs-suggestion*")
-      (toggle-read-only -1)
-      (erase-buffer)
-      (insert suggestion)
-      (toggle-read-only 1)
-      (use-local-map recs-suggestion-buffer-map)
-      (recursive-edit))))
+(defun recs-princ-suggestion (match)
+  "Princ the suggestion."
+  (flet ((mprinc (&rest args) (mapc 'princ args)))
+    (let ((msg (cddr match)) (pos 0))
+      (princ "You entered the command sequence:\n\n[")
+      (dolist (s (split-string (car match) "" t))
+        (dolist (elt recs-cmd-char-alist)
+          (when (string= s (cdr elt))
+            (mprinc "`" (car elt) "', "))))
+      (mprinc "]\n\n" msg "\n\n")
+      (while (string-match "`\\(.*?\\)'" msg pos)
+        (setq pos (match-end 1))
+        (let* ((cmd (intern (match-string 1 msg)))
+               (keys (where-is-internal (or (command-remapping cmd) cmd))))
+          (cond ((not (commandp cmd))
+                 (mprinc cmd "is actually not a command."))
+                (keys
+                 (mprinc "`" cmd "' is bound to: "
+                         (mapconcat 'key-description keys ", ")))
+                (t (mprinc cmd " has no keybindings."))))))))
 
 (defun recs-suggest (match)
   "Displays suggestion to user in a separate buffer if
-  `recs-pop-to-buffer' is non-nil, or in the echo area."
-  (let ((suggestion (recs-suggestion match)))
-    (if recs-pop-to-buffer
-        (recs-goto-suggestion-buffer suggestion)
-      (message suggestion))))
+  `recs-pop-to-buffer' is non-nil, otherwise in the echo area."
+  (if recs-pop-to-buffer
+      (with-help-window "*recs*" (recs-princ-suggestion match))
+    (message (with-output-to-string (recs-princ-suggestion match)))))
 
 (defun recs-hook ()
   "Hook function to add to `post-command-hook'."
