@@ -106,9 +106,7 @@
 
 ;; TODO:
 ;;
-;;  - Add msg redirection to another buffer
-;;
-;;  - Add more suggestions.
+;;  - More default suggestions
 ;;
 ;;  - Mode specific command regexp matching?
 ;;
@@ -117,6 +115,8 @@
 
 (eval-when-compile
   (require 'cl))
+
+;; Configurable variables
 
 (defvar re-suggest-null-cmd-char "_"
   "Character string used to represent commands no defined in
@@ -129,67 +129,91 @@
 (defvar re-suggest-ding-on-suggestion t
   "Determines whether to call `ding' when a suggestion is made.")
 
+(defvar re-suggest-pop-to-buffer t
+  "Determines whether to goto a suggestion buffer in another
+window rather than sending the suggestion to the echo area.")
+
 (defvar re-suggest-cmd-char-alist
   ;; These commands won't be in any order that makes sense. I assigned
   ;; characters to them mnemonically at the beginning, before running
   ;; out of good ones, then alphabetized based on those characters to
   ;; better see which characters were available.
-  '((move-beginning-of-line      . "a")
-    (backward-char               . "b")
-    (backward-word               . "B")
-    (backward-list               . "C")
-    (set-mark-command            . "c")
-    (delete-window               . "d")
-    (move-end-of-line            . "e")
-    (forward-char                . "f")
-    (forward-word                . "F")
-    (forward-list                . "G")
-    (kill-ring-save              . "g")
-    (indent-for-tab-command      . "i")
-    (kill-line                   . "k")
-    (kill-region                 . "K")
-    (newline                     . "l")
-    (next-line                   . "n")
-    (other-window                . "o")
-    (previous-line               . "p")
-    (beginning-of-buffer         . "r")
-    (eval-last-sexp              . "s")
-    (kill-word                   . "t")
-    (backward-kill-word          . "T")
-    (scroll-up                   . "v")
-    (scroll-down                 . "V")
-    (end-of-buffer               . "w")
-    (forward-paragraph           . "x")
-    (yank                        . "y")
-    (backward-paragraph          . "z"))
+  '((move-beginning-of-line               . "a")
+    (backward-char                        . "b")
+    (backward-word                        . "B")
+    (backward-list                        . "C")
+    (set-mark-command                     . "c")
+    (delete-window                        . "d")
+    (delete-char                          . "D")
+    (backward-delete-char-untabify        . "E")
+    (move-end-of-line                     . "e")
+    (forward-char                         . "f")
+    (forward-word                         . "F")
+    (forward-list                         . "G")
+    (kill-ring-save                       . "g")
+    (indent-for-tab-command               . "i")
+    (kill-line                            . "k")
+    (kill-region                          . "K")
+    (newline                              . "l")
+    (mark-paragraph                       . "M")
+    (next-line                            . "n")
+    (other-window                         . "o")
+    (previous-line                        . "p")
+    (beginning-of-buffer                  . "r")
+    (eval-last-sexp                       . "s")
+    (kill-word                            . "t")
+    (backward-kill-word                   . "T")
+    (scroll-up                            . "v")
+    (scroll-down                          . "V")
+    (end-of-buffer                        . "w")
+    (forward-paragraph                    . "x")
+    (yank                                 . "y")
+    (backward-paragraph                   . "z"))
   "An alist mapping commands to character strings. It's used to
 convert sequences of commands into strings. The character string
 defined in `re-suggest-null-cmd-char' is reserved for commands
-not present in this list, and should not be used.
-
-You should modify this list as you see fit.")
+not present in this list, and should not be used. Modify this
+list to suit your needs.")
 
 (defvar re-suggest-regexp-cmd-seq-alist
-  '(("lpe"                       . "You should use `open-line' to do that.")
-    ("zcx\\|xcz"                 . "You should use `mark-paragraph' to do that.")
-    ("rcw\\|wcr"                 . "You should use `mark-whole-buffer' to do that.")
-    ("xs"                        . "You should use `eval-defun' to do that.")
-    ("li"                        . "You should use `newline-and-indent' to do that.")
-    ("kkny"                      . "You should use `transpose-lines' to do that.")
-    ("ov"                        . "You should use `scroll-other-window' to do that.")
-    ("FFT"                       . "You should use `kill-word' to do that.")
-    ("BBt"                       . "You should use `backward-kill-word' to do that.")
-    ("c[G\|C]+K[G\|C]+l*y"       . "You should use `transpose-sexps' to do that.")
-    ("c[F\|B]K[F\|B]+y"          . "You should use `transpose-words' to do that.")
-    ("n\\{20\\}"                 . "You should use more efficient navigation, like `forward-paragraph'.")
-    ("p\\{20\\}"                 . "You should use more efficient navigation, like `backward-paragraph'.")
-    ("f\\{20\\}"                 . "You should use more efficient navigation, like `forward-word'.")
-    ("b\\{20\\}"                 . "You should use more efficient navigation, like `backward-word'."))
+  '(("lpe"                                . "You should use `open-line' to do that.")
+    ("xs"                                 . "You should use `eval-defun' to do that.")
+    ("li"                                 . "You should use `newline-and-indent' to do that.")
+    ("kkny"                               . "You should use `transpose-lines' to do that.")
+    ("ov"                                 . "You should use `scroll-other-window' to do that.")
+    ("FFT"                                . "You should use `kill-word' to do that.")
+    ("BBt"                                . "You should use `backward-kill-word' to do that.")
+    ("zcx\\|xcz"                          . "You should use `mark-paragraph' to do that.")
+    ("rcw\\|wcr"                          . "You should use `mark-whole-buffer' to do that.")
+    ("MK[z\|x]+y"                         . "You should use `transpose-paragraphs' to do that.")
+    ("c[G\|C]+K[G\|C]+l*y"                . "You should use `transpose-sexps' to do that.")
+    ("c[F\|B]K[F\|B]+y"                   . "You should use `transpose-words' to do that.")
+    ("D\\{15\\}"                          . "You should use something like `kill-word' to do that.")
+    ("E\\{15\\}"                          . "You should use something like `backward-kill-word' to do that.")
+    ("n\\{20\\}"                          . "You should use something like `forward-paragraph'.")
+    ("p\\{20\\}"                          . "You should use something like `backward-paragraph'.")
+    ("f\\{20\\}"                          . "You should use something like `forward-word'.")
+    ("b\\{20\\}"                          . "You should use something like `backward-word'."))
   "An alist mapping command sequence regexps to suggestion
   messages. Modify this list to suit your needs.")
 
+;; Nonconfigurable variables
+
+(defvar re-suggest-cmd-string nil
+  "A string composed of characters that map to commands in
+  `re-suggest-cmd-char-alist'.")
+
+(defvar re-suggest-cmd-string-length 100
+  "Length of `re-suggest-cmd-string'.")
+
 (defvar re-suggest-last-suggestion-time nil
   "System seconds at which the last suggestion occured.")
+
+(defvar re-suggest-suggestion-buffer-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "q") (lambda () (interactive) (throw 'exit nil)))
+    map)
+  "Keymap for commands in the suggestion buffer.")
 
 (defun re-suggest-current-time ()
   "Returns the current system time in seconds."
@@ -212,13 +236,6 @@ previous two has been superceded, nil otherwise."
   "Sets `re-suggest-last-suggestion-time' with the current time
 in seconds."
   (setq re-suggest-last-suggestion-time (re-suggest-current-time)))
-
-(defvar re-suggest-cmd-string nil
-  "A string composed of characters that map to commands in
-  `re-suggest-cmd-char-alist'.")
-
-(defvar re-suggest-cmd-string-length 100
-  "Length of `re-suggest-cmd-string'.")
 
 (defun re-suggest-reset-cmd-string ()
   "Makes and empty cmd-string of length
@@ -276,7 +293,7 @@ STR."
               (cond ((not (commandp cmd))
                      (format "%s is actually not a command." cmd))
                     (keys
-                     (concat (format "%s is bound to " cmd)
+                     (concat (format "`%s' is bound to: " cmd)
                              (mapconcat 'key-description keys ", ")))
                     (t (format "%s has no keybindings." cmd)))))
           (re-suggest-extract-quoted msg)))
@@ -296,15 +313,31 @@ names."
 (defun re-suggest-suggestion (match)
   "Constructs the suggestion from MATCH."
   (destructuring-bind (match-str pattern . msg) match
-    (format "You entered the command sequence: %s\n%s\n%s"
+    (format "You entered the command sequence:\n\n[%s]\n\n%s\n\n%s\n\nPress `q' to exit."
             (re-suggest-trigger-str match-str)
             msg
             (mapconcat 'identity (re-suggest-get-bindings msg) "\n"))))
 
-;; (toggle-read-only)
-;; (get-buffer-create)
-;; (pop-to-buffer)
-;; Use the above to create an excursion option
+(defun re-suggest-goto-suggestion-buffer (suggestion)
+  "Creates the suggestion buffer. Buffer is dismissable with
+`q'."
+  (save-excursion
+    (save-window-excursion
+      (pop-to-buffer "*re-suggest-suggestion*")
+      (toggle-read-only -1)
+      (erase-buffer)
+      (insert suggestion)
+      (toggle-read-only 1)
+      (use-local-map re-suggest-suggestion-buffer-map)
+      (recursive-edit))))
+
+(defun re-suggest-suggest (match)
+  "Displays suggestion to user in a separate buffer if
+  `re-suggest-pop-to-buffer' is non-nil, or in the echo area."
+  (let ((suggestion (re-suggest-suggestion match)))
+    (if re-suggest-pop-to-buffer
+        (re-suggest-goto-suggestion-buffer suggestion)
+      (message suggestion))))
 
 (defun re-suggest-hook ()
   "Hook function to add to `post-command-hook'."
@@ -312,10 +345,10 @@ names."
     (re-suggest-record-cmd)
     (let ((match (re-suggest-detect-match)))
       (when match
-        (message (re-suggest-suggestion match))
         (re-suggest-reset-cmd-string)
         (re-suggest-record-time)
-        (when re-suggest-ding-on-suggestion (ding))))))
+        (when re-suggest-ding-on-suggestion (ding))
+        (re-suggest-suggest match)))))
 
 (defun re-suggest-enable (enable)
   "Enables `re-suggest-mode' when ENABLE is t, disables
