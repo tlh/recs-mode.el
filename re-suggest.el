@@ -106,8 +106,11 @@
 
 ;; TODO:
 ;;
+;;  - Add msg redirection to another buffer
+;;
 ;;  - Add more suggestions.
-;;  - Add mode specific command regexp matching.
+;;
+;;  - Mode specific command regexp matching?
 ;;
 
 ;;; Code:
@@ -243,9 +246,10 @@ regexps in `re-suggest-regexp-cmd-seq-alist'. Returns the
 corresponging message if a match is found, nil otherwise."
   (catch 'result
     (let (case-fold-search)
-      (dolist (seq re-suggest-regexp-cmd-seq-alist nil)
-        (and (string-match (car seq) re-suggest-cmd-string)
-             (throw 'result (cdr seq)))))))
+      (dolist (pattern re-suggest-regexp-cmd-seq-alist nil)
+        (and (string-match (car pattern) re-suggest-cmd-string)
+             (throw 'result (cons (match-string 0 re-suggest-cmd-string)
+                                  pattern)))))))
 
 (defun re-suggest-extract-quoted (str)
   "Extract and intern a list of strings quoted like `this' from
@@ -271,14 +275,34 @@ STR."
                     (t (format "%s has no keybindings." cmd)))))
           (re-suggest-extract-quoted msg)))
 
+(defun re-suggest-trigger-str (match-str)
+  "Does a reverse lookup on `re-suggest-cmd-char-alist' from the
+chars in match-str to the commands they map to, and constructs a
+string from the command names."
+  (mapconcat (lambda (char)
+               (catch 'result
+                 (dolist (elt re-suggest-cmd-char-alist)
+                   (when (string= (cdr elt) (char-to-string char))
+                     (throw 'result (format "`%s'" (car elt)))))))
+             match-str
+             ", "))
+
+(defun re-suggest-message (match)
+  "Constructs the suggestion message from MATCH."
+  (destructuring-bind (match-str pattern . msg) match
+    (message "You entered the command sequence: %s\n%s\n%s"
+             (re-suggest-trigger-str match-str)
+             msg
+             (mapconcat 'identity (re-suggest-get-bindings msg) "\n"))))
+
 (defun re-suggest-hook ()
   "Hook function to add to `post-command-hook'."
   (when (re-suggest-check-time)
     (re-suggest-record-cmd)
-    (let ((msg (re-suggest-detect-match)))
-      (when msg
-        (message (mapconcat 'identity (cons msg (re-suggest-get-bindings msg)) "\n"))
+    (let ((match (re-suggest-detect-match)))
+      (when match
         (ding)
+        (re-suggest-message match)
         (re-suggest-reset-cmd-string)
         (re-suggest-record-time)))))
 
