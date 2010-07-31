@@ -137,14 +137,17 @@
   '((move-beginning-of-line      . "a")
     (backward-char               . "b")
     (backward-word               . "B")
+    (backward-list               . "C")
     (set-mark-command            . "c")
     (delete-window               . "d")
     (move-end-of-line            . "e")
     (forward-char                . "f")
     (forward-word                . "F")
+    (forward-list                . "G")
     (kill-ring-save              . "g")
     (indent-for-tab-command      . "i")
     (kill-line                   . "k")
+    (kill-region                 . "K")
     (newline                     . "l")
     (next-line                   . "n")
     (other-window                . "o")
@@ -176,14 +179,14 @@ You should modify this list as you see fit.")
     ("ov"                        . "You should use `scroll-other-window' to do that.")
     ("FFT"                       . "You should use `kill-word' to do that.")
     ("BBt"                       . "You should use `backward-kill-word' to do that.")
+    ("c[G\|C]+K[G\|C]+l*y"       . "You should use `transpose-sexps' to do that.")
+    ("c[F\|B]K[F\|B]+y"          . "You should use `transpose-words' to do that.")
     ("n\\{20\\}"                 . "You should use more efficient navigation, like `forward-paragraph'.")
     ("p\\{20\\}"                 . "You should use more efficient navigation, like `backward-paragraph'.")
     ("f\\{20\\}"                 . "You should use more efficient navigation, like `forward-word'.")
     ("b\\{20\\}"                 . "You should use more efficient navigation, like `backward-word'."))
   "An alist mapping command sequence regexps to suggestion
-  messages.
-
-You should modify this list as you see fit.")
+  messages. Modify this list to suit your needs.")
 
 (defvar re-suggest-last-suggestion-time nil
   "System seconds at which the last suggestion occured.")
@@ -280,8 +283,8 @@ STR."
 
 (defun re-suggest-trigger-str (match-str)
   "Does a reverse lookup on `re-suggest-cmd-char-alist' from the
-chars in match-str to the commands they map to, and constructs a
-string from the command names."
+chars in match-str, constructing a string from the command
+names."
   (mapconcat (lambda (char)
                (catch 'result
                  (dolist (elt re-suggest-cmd-char-alist)
@@ -290,13 +293,18 @@ string from the command names."
              match-str
              ", "))
 
-(defun re-suggest-message (match)
-  "Constructs the suggestion message from MATCH."
+(defun re-suggest-suggestion (match)
+  "Constructs the suggestion from MATCH."
   (destructuring-bind (match-str pattern . msg) match
-    (message "You entered the command sequence: %s\n%s\n%s"
-             (re-suggest-trigger-str match-str)
-             msg
-             (mapconcat 'identity (re-suggest-get-bindings msg) "\n"))))
+    (format "You entered the command sequence: %s\n%s\n%s"
+            (re-suggest-trigger-str match-str)
+            msg
+            (mapconcat 'identity (re-suggest-get-bindings msg) "\n"))))
+
+;; (toggle-read-only)
+;; (get-buffer-create)
+;; (pop-to-buffer)
+;; Use the above to create an excursion option
 
 (defun re-suggest-hook ()
   "Hook function to add to `post-command-hook'."
@@ -304,7 +312,7 @@ string from the command names."
     (re-suggest-record-cmd)
     (let ((match (re-suggest-detect-match)))
       (when match
-        (re-suggest-message match)
+        (message (re-suggest-suggestion match))
         (re-suggest-reset-cmd-string)
         (re-suggest-record-time)
         (when re-suggest-ding-on-suggestion (ding))))))
@@ -325,7 +333,7 @@ otherwise."
 If ARG is null, toggle re-suggest.
 If ARG is a number greater than zero, turn on re-suggest.
 Otherwise, turn off re-suggest."
-  :lighter     " res"
+  :lighter     " Sug"
   :init-value  nil
   :global      t
   (cond (noninteractive   (re-suggest-enable nil))
