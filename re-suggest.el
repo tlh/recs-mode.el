@@ -29,8 +29,8 @@
 ;; something. You want to start using it, but your muscle memory
 ;; continues to do it the old way. Before long you forget the new way,
 ;; and continue doing things the old way. With re-suggest, emacs can
-;; recognize the old pattern and suggest the new the pattern whenever
-;; you use it, training you to be a better emacs user.
+;; recognize the old pattern when you use it, and suggest the new the
+;; pattern, training you to be a better emacs user.
 ;;
 ;; re-suggest.el is a simple command suggestion minor-mode. It works
 ;; by mapping commands to characters, creating a string out of the
@@ -38,7 +38,7 @@
 ;; string against a list of user-defined regexps that correspond to
 ;; command sequences, and finally suggesting a better way to do things
 ;; when a match is found. re-suggest looks strictly at sequences of
-;; commands, not sequences of keystrokes, avoiding the complications
+;; commands, not sequences of keystrokes, avoiding complications
 ;; resulting from different keybindings in different modes. This is
 ;; considered a feature.
 ;;
@@ -170,7 +170,6 @@ You should modify this list as you see fit.")
 
 You should modify this list as you see fit.")
 
-
 (defvar re-suggest-last-suggestion-time nil
   "System seconds at which the last suggestion occured.")
 
@@ -236,7 +235,8 @@ corresponging message if a match is found, or nil otherwise."
       nil)))
 
 (defun re-suggest-extract-quoted (str)
-  "Extract from STR and intern a list of strings quoted like `this'."
+  "Extract and intern a list of strings quoted like `this' from
+STR."
   (let ((pos 0) (acc))
     (while (string-match "`\\(.*?\\)'" str pos)
       (push (intern (match-string 1 str)) acc)
@@ -259,13 +259,21 @@ corresponging message if a match is found, or nil otherwise."
           (re-suggest-extract-quoted msg)))
 
 (defun re-suggest-hook ()
-  "Main re-suggest Hook that gets added to `post-command-hook'."
+  "Hook function to add to `post-command-hook'."
   (re-suggest-record-cmd)
   (let ((msg (re-suggest-detect-match)))
     (when (and msg (re-suggest-check-time))
       (message (mapconcat 'identity (cons msg (re-suggest-get-bindings msg)) "\n"))
       (ding)
       (setq re-suggest-cmd-string (re-suggest-make-empty-cmd-string)))))
+
+(defun re-suggest-enable (enable)
+  "Enables `re-suggest-mode' when ENABLE is t, disables
+otherwise."
+  (cond (enable (add-hook 'post-command-hook 're-suggest-hook)
+                (setq re-suggest-mode t))
+        (t      (remove-hook 'post-command-hook 're-suggest-hook)
+                (setq re-suggest-mode nil))))
 
 ;;;###autoload
 (define-minor-mode re-suggest-mode
@@ -274,16 +282,11 @@ corresponging message if a match is found, or nil otherwise."
 If ARG is null, toggle re-suggest.
 If ARG is a number greater than zero, turn on re-suggest.
 Otherwise, turn off re-suggest."
-  :init-value nil
-  (cond
-   (noninteractive
-    (remove-hook 'post-command-hook 're-suggest-hook)
-    (setq re-suggest-mode nil))
-   (re-suggest-mode
-    (add-hook 'post-command-hook 're-suggest-hook)
-    (setq re-suggest-mode t))
-   (t
-    (remove-hook 'post-command-hook 're-suggest-hook)
-    (setq re-suggest-mode nil))))
+  :lighter     " res"
+  :init-value  nil
+  :global      t
+  (cond (noninteractive   (re-suggest-enable nil))
+        (re-suggest-mode  (re-suggest-enable t))
+        (t                (re-suggest-enable nil))))
 
 (provide 're-suggest)
