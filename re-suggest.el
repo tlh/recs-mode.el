@@ -124,31 +124,31 @@
 ;; out of good ones, then alphabetized based on those characters to
 ;; better see which characters were available.
 (defvar re-suggest-cmd-char-alist
-  '((move-beginning-of-line . "a")
-    (backward-char          . "b")
-    (backward-word          . "B")
-    (set-mark-command       . "c")
-    (delete-window          . "d")
-    (move-end-of-line       . "e")
-    (forward-char           . "f")
-    (forward-word           . "F")
-    (kill-ring-save         . "g")
-    (indent-for-tab-command . "i")
-    (kill-line              . "k")
-    (newline                . "l")
-    (next-line              . "n")
-    (other-window           . "o")
-    (previous-line          . "p")
-    (beginning-of-buffer    . "r")
-    (eval-last-sexp         . "s")
-    (kill-word              . "t")
-    (backward-kill-word     . "T")
-    (scroll-up              . "v")
-    (scroll-down            . "V")
-    (end-of-buffer          . "w")
-    (forward-paragraph      . "x")
-    (yank                   . "y")
-    (backward-paragraph     . "z"))
+  '((move-beginning-of-line      . "a")
+    (backward-char               . "b")
+    (backward-word               . "B")
+    (set-mark-command            . "c")
+    (delete-window               . "d")
+    (move-end-of-line            . "e")
+    (forward-char                . "f")
+    (forward-word                . "F")
+    (kill-ring-save              . "g")
+    (indent-for-tab-command      . "i")
+    (kill-line                   . "k")
+    (newline                     . "l")
+    (next-line                   . "n")
+    (other-window                . "o")
+    (previous-line               . "p")
+    (beginning-of-buffer         . "r")
+    (eval-last-sexp              . "s")
+    (kill-word                   . "t")
+    (backward-kill-word          . "T")
+    (scroll-up                   . "v")
+    (scroll-down                 . "V")
+    (end-of-buffer               . "w")
+    (forward-paragraph           . "x")
+    (yank                        . "y")
+    (backward-paragraph          . "z"))
   "An alist mapping commands to character strings. It's used to
 convert sequences of commands into strings. The character string
 defined in `re-suggest-null-cmd-char' is reserved for commands
@@ -157,7 +157,7 @@ not present in this list, and should not be used.
 You should modify this list as you see fit.")
 
 (defvar re-suggest-regexp-cmd-seq-alist
-  '(("lp"                        . "You should use `open-line' to do that.")
+  '(("lpe"                       . "You should use `open-line' to do that.")
     ("zcx\\|xcz"                 . "You should use `mark-paragraph' to do that.")
     ("rcw\\|wcr"                 . "You should use `mark-whole-buffer' to do that.")
     ("xs"                        . "You should use `eval-defun' to do that.")
@@ -178,23 +178,31 @@ You should modify this list as you see fit.")
 (defvar re-suggest-last-suggestion-time nil
   "System seconds at which the last suggestion occured.")
 
-(defvar re-suggest-suggestion-interval 10
+(defvar re-suggest-suggestion-interval nil
   "Minimum number of seconds between suggestions. If nil, no time
   checking is performed")
 
+(defun re-suggest-current-time ()
+  "Returns the current system time in seconds."
+  (let ((time (current-time)))
+    (+ (* (car time) (expt 2 16))
+       (cadr time)
+       (/ (caddr time) 1000000.0))))
+
 (defun re-suggest-check-time ()
-  "Sets `re-suggest-last-suggestion-time' with and returns the
-current system time in seconds if
-`re-suggest-suggestion-interval' is nil, if
+  "Returns t if `re-suggest-suggestion-interval' is nil, if
 `re-suggest-last-suggestion-time' is nil or if the sum of the
-previous two has been superceded. Returns nil otherwise."
-  (destructuring-bind (t0 t1 t2) (current-time)
-    (let ((secs (+ (* t0 (expt 2 16)) t1 (/ t2 1000000.0))))
-      (when (or (not re-suggest-suggestion-interval)
-                (not re-suggest-last-suggestion-time)
-                (>= secs (+ re-suggest-last-suggestion-time
-                            re-suggest-suggestion-interval)))
-        (setq re-suggest-last-suggestion-time secs)))))
+previous two has been superceded, nil otherwise."
+  (or (not re-suggest-suggestion-interval)
+      (not re-suggest-last-suggestion-time)
+      (>=  (re-suggest-current-time)
+           (+ re-suggest-last-suggestion-time
+              re-suggest-suggestion-interval))))
+
+(defun re-suggest-record-time ()
+  "Sets `re-suggest-last-suggestion-time' with the current time
+in seconds."
+  (setq re-suggest-last-suggestion-time (re-suggest-current-time)))
 
 (defvar re-suggest-cmd-string nil
   "A string composed of characters that map to commands in
@@ -265,13 +273,14 @@ STR."
 
 (defun re-suggest-hook ()
   "Hook function to add to `post-command-hook'."
-  (re-suggest-record-cmd)
   (when (re-suggest-check-time)
+    (re-suggest-record-cmd)
     (let ((msg (re-suggest-detect-match)))
       (when msg
         (message (mapconcat 'identity (cons msg (re-suggest-get-bindings msg)) "\n"))
         (ding)
-        (re-suggest-reset-cmd-string)))))
+        (re-suggest-reset-cmd-string)
+        (re-suggest-record-time)))))
 
 (defun re-suggest-enable (enable)
   "Enables `re-suggest-mode' when ENABLE is t, disables
