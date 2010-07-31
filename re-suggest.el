@@ -125,26 +125,27 @@
 ;; Customizable variables
 
 (defcustom recs-null-cmd-char "_"
-  "String used to represent commands not defined in
-  `recs-cmd-char-alist'. Value must be a string of length
-  1."
+  "Placeholder string used to represent `recs-cmd-string'
+  commands not defined in `recs-cmd-char-alist'. Value must be a
+  string of length 1, and can not be used as a value in
+  `recs-cmd-char-alist'."
   :type 'string
   :group 'recs)
 
 (defcustom recs-suggestion-interval nil
-  "Minimum number of seconds between suggestions. If nil, no time
-  checking is performed"
+  "Defines the minimum number of seconds between suggestions. If
+  nil, no time checking is performed."
   :type 'boolean
   :group 'recs)
 
 (defcustom recs-ding-on-suggestion t
-  "Determines whether to call `ding' when a suggestion is made."
+  "Defines whether to call `ding' when a suggestion is made."
   :type 'boolean
   :group 'recs)
 
 (defcustom recs-pop-to-buffer nil
-  "Determines whether to pop to a suggestion buffer in another
-window rather than sending the suggestion to the echo area."
+  "Defines whether to pop to a `q'-dismissable suggestion buffer,
+rather than sending the suggestion to the echo area."
   :type 'boolean
   :group 'recs)
 
@@ -215,27 +216,35 @@ list to suit your needs."
     ;; ("b\\{20\\}"                          . "You should use something like `backward-word'.")
     )
   "An alist mapping command sequence regexps to suggestion
-  messages. Modify this list to suit your needs."
+  messages. Substrings quoted `like-this' are considered to be
+  command names, and an attempt is made to determine and print
+  their keybindings. Modify this list to suit your needs."
   :type 'alist
   :group 'recs)
 
 ;; Nonconfigurable variables
 
 (defvar recs-cmd-string nil
-  "A string composed of characters that map to commands in
-  `recs-cmd-char-alist'.")
+  "A ring-like string composed of characters that map to commands
+  in `recs-cmd-char-alist'. When a command is entered, its
+  command-character (or `recs-null-cmd-char' if the command has
+  no mapping in `recs-cmd-char-alist') is appended to the end of
+  the string, and the oldest command-character is removed from
+  the beginning. Its length will always be
+  `recs-cmd-string-length'.")
 
 (defvar recs-cmd-string-length 100
-  "Length of `recs-cmd-string'.")
-
-(defvar recs-last-suggestion-time nil
-  "System seconds at which the last suggestion occured.")
+  "Length of `recs-cmd-string'. Increase this number in order to
+  be able to detect longer patterns of commands.")
 
 (defvar recs-suggestion-buffer-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "q") (lambda () (interactive) (throw 'exit nil)))
     map)
   "Keymap for commands in the suggestion buffer.")
+
+(defvar recs-last-suggestion-time nil
+  "System seconds at which the last suggestion occured.")
 
 (defun recs-current-time ()
   "Returns the current system time in seconds."
@@ -297,7 +306,7 @@ corresponging message if a match is found, nil otherwise."
                                   pattern)))))))
 
 (defun recs-extract-quoted (str)
-  "Extract and intern a list of strings quoted like `this' from
+  "Extracts and interns a list of strings quoted like `this' from
 STR."
   (let ((pos 0) (acc))
     (while (string-match "`\\(.*?\\)'" str pos)
@@ -333,7 +342,7 @@ names."
              ", "))
 
 (defun recs-suggestion (match)
-  "Constructs the suggestion from MATCH."
+  "Constructs from MATCH and returns the suggestion string."
   (destructuring-bind (match-str pattern . msg) match
     (format "re-suggest -- Press `q' to exit.\n\nYou entered the command sequence:\n\n[%s]\n\n%s\n\n%s"
             (recs-trigger-str match-str)
@@ -341,8 +350,7 @@ names."
             (mapconcat 'identity (recs-get-bindings msg) "\n"))))
 
 (defun recs-goto-suggestion-buffer (suggestion)
-  "Creates the suggestion buffer. Buffer is dismissable with
-`q'."
+  "Creates the suggestion buffer. Buffer is dismissable with `q'."
   (save-excursion
     (save-window-excursion
       (pop-to-buffer "*recs-suggestion*")
@@ -388,7 +396,7 @@ otherwise."
 If ARG is null, toggle re-suggest.
 If ARG is a number greater than zero, turn on re-suggest.
 Otherwise, turn off re-suggest."
-  :lighter     " Sug"
+  :lighter     " recs"
   :init-value  nil
   :global      t
   (cond (noninteractive   (recs-enable nil))
