@@ -116,24 +116,39 @@
 (eval-when-compile
   (require 'cl))
 
-;; Configurable variables
+(defgroup recs nil
+  "Regexp-based command suggestion minor mode."
+  :group 'extensions
+  :group 'convenience
+  :version "1.0")
 
-(defvar re-suggest-null-cmd-char "_"
-  "Character string used to represent commands no defined in
-  `re-suggest-cmd-char-alist'.")
+;; Customizable variables
 
-(defvar re-suggest-suggestion-interval nil
+(defcustom re-suggest-null-cmd-char "_"
+  "String used to represent commands not defined in
+  `re-suggest-cmd-char-alist'. Value must be a string of length
+  1."
+  :type 'string
+  :group 'recs)
+
+(defcustom re-suggest-suggestion-interval nil
   "Minimum number of seconds between suggestions. If nil, no time
-  checking is performed")
+  checking is performed"
+  :type 'boolean
+  :group 'recs)
 
-(defvar re-suggest-ding-on-suggestion t
-  "Determines whether to call `ding' when a suggestion is made.")
+(defcustom re-suggest-ding-on-suggestion t
+  "Determines whether to call `ding' when a suggestion is made."
+  :type 'boolean
+  :group 'recs)
 
-(defvar re-suggest-pop-to-buffer t
-  "Determines whether to goto a suggestion buffer in another
-window rather than sending the suggestion to the echo area.")
+(defcustom re-suggest-pop-to-buffer nil
+  "Determines whether to pop to a suggestion buffer in another
+window rather than sending the suggestion to the echo area."
+  :type 'boolean
+  :group 'recs)
 
-(defvar re-suggest-cmd-char-alist
+(defcustom re-suggest-cmd-char-alist
   ;; These commands won't be in any order that makes sense. I assigned
   ;; characters to them mnemonically at the beginning, before running
   ;; out of good ones, then alphabetized based on those characters to
@@ -168,12 +183,15 @@ window rather than sending the suggestion to the echo area.")
     (end-of-buffer                        . "w")
     (forward-paragraph                    . "x")
     (yank                                 . "y")
-    (backward-paragraph                   . "z"))
+    (backward-paragraph                   . "z")
+    )
   "An alist mapping commands to character strings. It's used to
 convert sequences of commands into strings. The character string
 defined in `re-suggest-null-cmd-char' is reserved for commands
 not present in this list, and should not be used. Modify this
-list to suit your needs.")
+list to suit your needs."
+  :type 'alist
+  :group 'recs)
 
 (defvar re-suggest-regexp-cmd-seq-alist
   '(("lpe"                                . "You should use `open-line' to do that.")
@@ -188,14 +206,18 @@ list to suit your needs.")
     ("MK[z\|x]+y"                         . "You should use `transpose-paragraphs' to do that.")
     ("c[G\|C]+K[G\|C]+l*y"                . "You should use `transpose-sexps' to do that.")
     ("c[F\|B]K[F\|B]+y"                   . "You should use `transpose-words' to do that.")
-    ("D\\{15\\}"                          . "You should use something like `kill-word' to do that.")
-    ("E\\{15\\}"                          . "You should use something like `backward-kill-word' to do that.")
-    ("n\\{20\\}"                          . "You should use something like `forward-paragraph'.")
-    ("p\\{20\\}"                          . "You should use something like `backward-paragraph'.")
-    ("f\\{20\\}"                          . "You should use something like `forward-word'.")
-    ("b\\{20\\}"                          . "You should use something like `backward-word'."))
+    ;; These can get a little annoying:
+    ;; ("D\\{15\\}"                          . "You should use something like `kill-word' to do that.")
+    ;; ("E\\{15\\}"                          . "You should use something like `backward-kill-word' to do that.")
+    ;; ("n\\{20\\}"                          . "You should use something like `forward-paragraph'.")
+    ;; ("p\\{20\\}"                          . "You should use something like `backward-paragraph'.")
+    ;; ("f\\{20\\}"                          . "You should use something like `forward-word'.")
+    ;; ("b\\{20\\}"                          . "You should use something like `backward-word'.")
+    )
   "An alist mapping command sequence regexps to suggestion
-  messages. Modify this list to suit your needs.")
+  messages. Modify this list to suit your needs."
+  :type 'alist
+  :group 'recs)
 
 ;; Nonconfigurable variables
 
@@ -313,7 +335,7 @@ names."
 (defun re-suggest-suggestion (match)
   "Constructs the suggestion from MATCH."
   (destructuring-bind (match-str pattern . msg) match
-    (format "You entered the command sequence:\n\n[%s]\n\n%s\n\n%s\n\nPress `q' to exit."
+    (format "re-suggest -- Press `q' to exit.\n\nYou entered the command sequence:\n\n[%s]\n\n%s\n\n%s"
             (re-suggest-trigger-str match-str)
             msg
             (mapconcat 'identity (re-suggest-get-bindings msg) "\n"))))
