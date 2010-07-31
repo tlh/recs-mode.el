@@ -115,10 +115,14 @@
 (eval-when-compile
   (require 'cl))
 
+(defvar re-suggest-null-cmd-char "_"
+  "Character string used to represent commands no defined in
+  `re-suggest-cmd-char-alist'.")
+
 ;; These commands won't be in any order that makes sense. I assigned
 ;; characters to them mnemonically at the beginning, before running
 ;; out of good ones, then alphabetized based on those characters to
-;; better see which ones were available.
+;; better see which characters were available.
 (defvar re-suggest-cmd-char-alist
   '((move-beginning-of-line . "a")
     (backward-char          . "b")
@@ -146,8 +150,9 @@
     (yank                   . "y")
     (backward-paragraph     . "z"))
   "An alist mapping commands to character strings. It's used to
-convert sequences of commands into strings. The \" \" character
-is reserved for commands not present in this list.
+convert sequences of commands into strings. The character string
+defined in `re-suggest-null-cmd-char' is reserved for commands
+not present in this list, and should not be used.
 
 You should modify this list as you see fit.")
 
@@ -191,17 +196,18 @@ previous two has been superceded. Returns nil otherwise."
                             re-suggest-suggestion-interval)))
         (setq re-suggest-last-suggestion-time secs)))))
 
+(defvar re-suggest-cmd-string nil
+  "A string composed of characters that map to commands in
+  `re-suggest-cmd-char-alist'.")
+
 (defvar re-suggest-cmd-string-length 100
   "Length of `re-suggest-cmd-string'.")
 
-(defun re-suggest-make-empty-cmd-string ()
+(defun re-suggest-reset-cmd-string ()
   "Makes and empty cmd-string of length
 `re-suggest-cmd-string-length'."
-  (make-string re-suggest-cmd-string-length ? ))
-
-(defvar re-suggest-cmd-string (re-suggest-make-empty-cmd-string)
-  "A string composed of characters that map to commands in
-  `re-suggest-cmd-char-alist'.")
+  (setq re-suggest-cmd-string
+        (make-string re-suggest-cmd-string-length ? )))
 
 (defun re-suggest-verify-cmd-string ()
   "Verifies that `re-suggest-cmd-string' exists, is a string, and
@@ -210,7 +216,7 @@ is of the length `re-suggest-cmd-string-length'."
                (stringp re-suggest-cmd-string)
                (= (length re-suggest-cmd-string)
                   re-suggest-cmd-string-length))
-    (setq re-suggest-cmd-string (re-suggest-make-empty-cmd-string)))
+    (re-suggest-reset-cmd-string))
   re-suggest-cmd-string)
 
 (defun re-suggest-record-cmd ()
@@ -221,18 +227,17 @@ is of the length `re-suggest-cmd-string-length'."
   (setq re-suggest-cmd-string
         (concat (subseq re-suggest-cmd-string 1)
                 (or (cdr (assoc this-original-command re-suggest-cmd-char-alist))
-                    " "))))
+                    re-suggest-null-cmd-char))))
 
 (defun re-suggest-detect-match ()
   "Attempts to match `re-suggest-cmd-string' against all the
 regexps in `re-suggest-regexp-cmd-seq-alist'. Returns the
-corresponging message if a match is found, or nil otherwise."
+corresponging message if a match is found, nil otherwise."
   (catch 'result
     (let (case-fold-search)
-      (mapc (lambda (seq) (and (string-match (car seq) re-suggest-cmd-string)
-                          (throw 'result (cdr seq))))
-            re-suggest-regexp-cmd-seq-alist)
-      nil)))
+      (dolist (seq re-suggest-regexp-cmd-seq-alist nil)
+        (and (string-match (car seq) re-suggest-cmd-string)
+             (throw 'result (cdr seq)))))))
 
 (defun re-suggest-extract-quoted (str)
   "Extract and intern a list of strings quoted like `this' from
@@ -261,16 +266,18 @@ STR."
 (defun re-suggest-hook ()
   "Hook function to add to `post-command-hook'."
   (re-suggest-record-cmd)
-  (let ((msg (re-suggest-detect-match)))
-    (when (and msg (re-suggest-check-time))
-      (message (mapconcat 'identity (cons msg (re-suggest-get-bindings msg)) "\n"))
-      (ding)
-      (setq re-suggest-cmd-string (re-suggest-make-empty-cmd-string)))))
+  (when (re-suggest-check-time)
+    (let ((msg (re-suggest-detect-match)))
+      (when msg
+        (message (mapconcat 'identity (cons msg (re-suggest-get-bindings msg)) "\n"))
+        (ding)
+        (re-suggest-reset-cmd-string)))))
 
 (defun re-suggest-enable (enable)
   "Enables `re-suggest-mode' when ENABLE is t, disables
 otherwise."
   (cond (enable (add-hook 'post-command-hook 're-suggest-hook)
+                (re-suggest-reset-cmd-string)
                 (setq re-suggest-mode t))
         (t      (remove-hook 'post-command-hook 're-suggest-hook)
                 (setq re-suggest-mode nil))))
