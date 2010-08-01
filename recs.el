@@ -148,11 +148,18 @@ suggestion minor mode."
   :type 'boolean
   :group 'recs)
 
-(defcustom recs-pop-to-buffer nil
-  "Defines whether to pop to a `q'-dismissable suggestion buffer,
-rather than sending the suggestion to the echo area."
+(defcustom recs-suggestion-window nil
+  "NIL means display suggestion in the echo area. t means display
+suggestion in a separate window. Window selection is defined by
+`recs-window-select'."
   :type 'boolean
   :group 'recs)
+
+(defcustom recs-window-select nil
+  "Acceptable values correspond to those for
+`help-window-select'."
+  :type 'symbol
+  :group 'res)
 
 (defcustom recs-cmd-chars
   ;; These commands won't be in any order that makes sense. I assigned
@@ -298,9 +305,8 @@ length `recs-cmdstr-length'."
   `this-original-command' maps to in `recs-cmd-chars', or
   `recs-null-cmd' if no match exists. Also removes the first char
   from `recs-cmdstr'."
-  (recs-verify-cmdstr)
   (setq recs-cmdstr
-        (concat (subseq recs-cmdstr 1)
+        (concat (subseq (recs-verify-cmdstr) 1)
                 (or (cdr (assoc this-original-command recs-cmd-chars))
                     recs-null-cmd))))
 
@@ -340,9 +346,12 @@ destination before calling."
 
 (defun recs-suggest (match)
   "Displays suggestion to user in a separate buffer if
-  `recs-pop-to-buffer' is non-nil, otherwise in the echo area."
-  (if recs-pop-to-buffer
-      (with-help-window "*recs*" (recs-princ-suggestion match))
+  `recs-suggestion-window' is non-nil, otherwise in the echo
+  area. Suggestion window selection is configured with
+  `recs-window-select'."
+  (if recs-suggestion-window
+      (let ((help-window-select recs-window-select))
+        (with-help-window "*recs*" (recs-princ-suggestion match)))
     (message (with-output-to-string (recs-princ-suggestion match)))))
 
 (defun recs-hook-fn ()
@@ -371,7 +380,7 @@ destination before calling."
 If ARG is null, toggle recs.
 If ARG is a number greater than zero, turn on recs.
 Otherwise, turn off recs."
-  :lighter     " recs"
+  :lighter     " Recs"
   :init-value  nil
   :global      t
   (cond (noninteractive   (recs-enable nil))
