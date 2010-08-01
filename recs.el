@@ -175,12 +175,16 @@ rather than sending the suggestion to the echo area."
     (forward-list                         . "G")
     (kill-ring-save                       . "g")
     (indent-for-tab-command               . "i")
+    (find-file                            . "I")
     (kill-line                            . "k")
     (kill-region                          . "K")
     (newline                              . "l")
+    (ido-find-file                        . "L")
     (mark-paragraph                       . "M")
     (next-line                            . "n")
+    (switch-to-buffer                     . "N")
     (other-window                         . "o")
+    (ido-exit-minibuffer                  . "O")
     (previous-line                        . "p")
     (beginning-of-buffer                  . "r")
     (eval-last-sexp                       . "s")
@@ -203,18 +207,21 @@ list to suit your needs."
 
 (defcustom recs-regexp-cmd-seq-alist
   '(("lpe"                                . "You should use `open-line' to do that.")
-    ("xs"                                 . "You should use `eval-defun' to do that.")
     ("li"                                 . "You should use `newline-and-indent' to do that.")
-    ("kkny"                               . "You should use `transpose-lines' to do that.")
+    ("xs"                                 . "You should use `eval-defun' to do that.")
     ("ov"                                 . "You should use `scroll-other-window' to do that.")
-    ("FFT"                                . "You should use `kill-word' to do that.")
-    ("BBt"                                . "You should use `backward-kill-word' to do that.")
+    ("ai"                                 . "You should use `back-to-indentation' to do that.")
+    ("o[I\|L]"                            . "You should use `find-file-other-window' to do that.")
+    ("k[k\|D]ny"                          . "You should use `transpose-lines' to do that.")
     ("zcx\\|xcz"                          . "You should use `mark-paragraph' to do that.")
     ("rcw\\|wcr"                          . "You should use `mark-whole-buffer' to do that.")
     ("MK[z\|x]+y"                         . "You should use `transpose-paragraphs' to do that.")
     ("c[G\|C]+K[G\|C]+l*y"                . "You should use `transpose-sexps' to do that.")
     ("c[F\|B]K[F\|B]+y"                   . "You should use `transpose-words' to do that.")
-    ;; These can get annoying:
+    ;; These are annoying or unnecessary. Left here as examples:
+    ;; ("[g\|K]N.*y"                         . "You should use `copy-to-buffer' to do that.")
+    ;; ("BBt"                                . "You should use `backward-kill-word' to do that.")
+    ;; ("FFT"                                . "You should use `kill-word' to do that.")
     ;; ("D\\{15\\}"                          . "You should use something like `kill-word' to do that.")
     ;; ("E\\{15\\}"                          . "You should use something like `backward-kill-word' to do that.")
     ;; ("n\\{20\\}"                          . "You should use something like `forward-paragraph'.")
@@ -229,7 +236,7 @@ list to suit your needs."
   :type 'alist
   :group 'recs)
 
-;; Nonconfigurable variables
+;; Non-customizable variables
 
 (defvar recs-cmd-string nil
   "A ring-like string composed of characters that map to commands
@@ -243,12 +250,6 @@ list to suit your needs."
 (defvar recs-cmd-string-length 100
   "Length of `recs-cmd-string'. Increase this number in order to
   be able to detect longer patterns of commands.")
-
-(defvar recs-suggestion-buffer-map
-  (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "q") (lambda () (interactive) (throw 'exit nil)))
-    map)
-  "Keymap for commands in the suggestion buffer.")
 
 (defvar recs-last-suggestion-time nil
   "System seconds at which the last suggestion occured.")
