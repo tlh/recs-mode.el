@@ -50,11 +50,19 @@
 
 ;; Features:
 ;;
-;;  - Definition of command patterns to be warned about as standard
-;;    emacs regexps
+;;  - Definition of command patterns as standard emacs regexps
+;;
+;;  - Suggestions that include `quoted-commands' display the
+;;    keybindings of those commands.
+;;
+;;  - Suggestions can be sent to the echo area or to a popup
+;;    buffer. Popping to a buffer can get really annoying, making it
+;;    desirable to learn quickly.
 ;;
 ;;  - A timer to set the minimum interval between suggestions, per the
 ;;    emacs TODO list ("C-h C-t") guideline.
+;;
+;;  - Togglable `ding'
 ;;
 
 ;; Installation:
@@ -87,9 +95,8 @@
 ;;      '(("lpe" . "You should use `open-line' to do that.")
 ;;        ("ov"  . "You should use `scroll-other-window' to do that.")))
 ;;
-;;    Any command names quoted `like-this' in suggestion messages will
-;;    have their keybindings included on separate lines in the
-;;    suggestion message.
+;;    Any commands quoted `like-this' will have extra information,
+;;    like their keybindings, included in the suggestion.
 ;;
 ;;  - To set the maximum length of the command sequences recs
 ;;    can recognize:
@@ -207,7 +214,7 @@ list to suit your needs."
     ("MK[z\|x]+y"                         . "You should use `transpose-paragraphs' to do that.")
     ("c[G\|C]+K[G\|C]+l*y"                . "You should use `transpose-sexps' to do that.")
     ("c[F\|B]K[F\|B]+y"                   . "You should use `transpose-words' to do that.")
-    ;; These can get a little annoying:
+    ;; These can get annoying:
     ;; ("D\\{15\\}"                          . "You should use something like `kill-word' to do that.")
     ;; ("E\\{15\\}"                          . "You should use something like `backward-kill-word' to do that.")
     ;; ("n\\{20\\}"                          . "You should use something like `forward-paragraph'.")
@@ -272,7 +279,8 @@ in seconds."
   "Makes and empty cmd-string of length
 `recs-cmd-string-length'."
   (setq recs-cmd-string
-        (make-string recs-cmd-string-length ? )))
+        (make-string recs-cmd-string-length
+                     (string-to-char recs-null-cmd-char))))
 
 (defun recs-verify-cmd-string ()
   "Verifies that `recs-cmd-string' exists, is a string, and
@@ -306,7 +314,8 @@ corresponging message if a match is found, nil otherwise."
                                   pattern)))))))
 
 (defun recs-princ-suggestion (match)
-  "Princ the suggestion."
+  "Princ the suggestion. Bind `standard-output' to the desired
+destination before calling."
   (flet ((mprinc (&rest args) (mapc 'princ args)))
     (let ((msg (cddr match)) (pos 0))
       (princ "You entered the command sequence:\n\n[")
@@ -333,7 +342,7 @@ corresponging message if a match is found, nil otherwise."
       (with-help-window "*recs*" (recs-princ-suggestion match))
     (message (with-output-to-string (recs-princ-suggestion match)))))
 
-(defun recs-hook ()
+(defun recs-hook-fn ()
   "Hook function to add to `post-command-hook'."
   (when (recs-check-time)
     (recs-record-cmd)
@@ -347,10 +356,10 @@ corresponging message if a match is found, nil otherwise."
 (defun recs-enable (enable)
   "Enables `recs-mode' when ENABLE is t, disables
 otherwise."
-  (cond (enable (add-hook 'post-command-hook 'recs-hook)
+  (cond (enable (add-hook 'post-command-hook 'recs-hook-fn)
                 (recs-reset-cmd-string)
                 (setq recs-mode t))
-        (t      (remove-hook 'post-command-hook 'recs-hook)
+        (t      (remove-hook 'post-command-hook 'recs-hook-fn)
                 (setq recs-mode nil))))
 
 ;;;###autoload
