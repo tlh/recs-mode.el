@@ -131,9 +131,9 @@ suggestion minor mode."
   :version "1.0")
 
 (defcustom recs-null-cmd "_"
-  "Placeholder string used to represent `recs-cmdstr' commands
-  not defined in `recs-cmd-chars'. Value must be a string of
-  length 1, and can not be used as a value in `recs-cmd-chars'."
+  "Placeholder used to represent in `recs-cmdstr' commands not
+  defined in `recs-cmd-chars'. Value must be a string of length
+  1, and can not be used as a value in `recs-cmd-chars'."
   :type 'string
   :group 'recs)
 
@@ -159,7 +159,20 @@ suggestion in a separate window. Window selection is defined by
   "Acceptable values correspond to those for
 `help-window-select'."
   :type 'symbol
-  :group 'res)
+  :group 'recs)
+
+(defcustom recs-hook nil
+  "Hook run whenever a suggestion is triggered."
+  :type 'hook
+  :group 'recs)
+
+(defcustom recs-suppress-suggestion nil
+  "NIL means normal suggestions behavior. t means recs won't
+  actually make a suggestion when a match is found. This can be
+  used in conjunction with `recs-hook' to define your own
+  behavior on match."
+  :type 'boolean
+  :group 'recs)
 
 (defcustom recs-cmd-chars
   ;; These commands won't be in any order that makes sense. I assigned
@@ -362,8 +375,10 @@ destination before calling."
       (when match
         (recs-reset-cmdstr)
         (recs-record-time)
+        (run-hooks 'recs-hook)
         (when recs-ding-on-suggestion (ding))
-        (recs-suggest match)))))
+        (unless recs-suppress-suggestion
+          (recs-suggest match))))))
 
 (defun recs-enable (enable)
   "Enables `recs-mode' when ENABLE is t, disables otherwise."
