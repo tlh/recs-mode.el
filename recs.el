@@ -75,22 +75,43 @@
 ;;; Configuration:
 ;;
 ;;  - recs comes with a number of default patterns, but you should
-;;    modify these to fit your usage.  The value of `recs-cmd-regexps'
-;;    should be a list of lists of a command-sequence-regexp, a
-;;    suggestion-message and any number of command name symbols like
-;;    so:
+;;    modify these to fit your usage.  The default patterns are stored
+;;    in the file "recs-patterns" in the recs directory.  You should
+;;    copy that file somewhere sensible, like "~/.emacs.d/", and
+;;    customize it there.  You will need to set the value of
+;;    `recs-pattern-file' to this new location:
 ;;
-;;    (defvar recs-cmd-regexps
-;;      '(("newline previous-line move-end-of-line"
-;;         "You should use `open-line' to do that."
-;;         open-line)
-;;        ("newline indent-for-tab-command"
-;;         "You should use `newline-and-indent' to do that."
-;;         newline-and-indent
-;;         some-other-command)))
+;;      (setq recs-pattern-file "/path/to/new/recs-patterns")
 ;;
-;;    recs will print the keybindings of the commands listed at the
-;;    end, if keybindings for them exist.
+;;    recs patterns consist of a list containing a command sequence
+;;    regular expression, a suggestion message, and any number of
+;;    command name symbols:
+;;
+;;      ("newline previous-line move-end-of-line"
+;;       "You should use `open-line' to do that."
+;;       open-line)
+;;
+;;      ("\\(some-command \\| some-other-command \\)+newline yank"
+;;       "You should use `better-command' or `even-better-command'
+;;        to do that."
+;;       better-command
+;;       even-better-command)
+;;
+;;    recs will print the keybindings, if they exist, of the commands
+;;    at the end of the list.  The commands listed should typically be
+;;    the same commands that are `quoted' in the suggestion message.
+;;
+;;    After modifying the contents of `recs-pattern-file' you will
+;;    need to reload the file for the changes to take effect.  You can
+;;    do this either by toggling recs-mode off and on with two
+;;    invocations of:
+;;
+;;      M-x recs-mode
+;;
+;;    or by issuing the command:
+;;
+;;      M-x recs-load-pattern-file
+;;
 ;;
 ;;  - Other customizable variables include:
 ;;
@@ -102,16 +123,17 @@
 ;;    `recs-window-select'
 ;;    `recs-hook'
 ;;    `recs-suppress-suggestion'
+;;    `recs-log-suggestions'
+;;    `recs-log-file'
 ;;
 ;;    See the documentation for these variables below, or enter:
 ;;
-;;      C-u M-x customize-mode RET recs-mode RET
+;;      "C-u M-x customize-mode RET recs-mode RET"
 ;;
 
 ;;; TODO:
 ;;
 ;;   - More default suggestions
-;;   - Separate config file
 ;;   - Interactive pattern definition
 ;;
 
@@ -183,57 +205,18 @@ do."
   :type 'boolean
   :group 'recs)
 
-(defcustom recs-cmd-regexps
-  '(("newline previous-line move-end-of-line"
-     "You should use `open-line' to do that."
-     open-line)
-    ("newline indent-for-tab-command"
-     "You should use `newline-and-indent' to do that."
-     newline-and-indent)
-    ("forward-paragraph eval-last-sexp"
-     "You should use `eval-defun' to do that."
-     eval-defun)
-    ("other-window scroll-up"
-     "You should use `scroll-other-window' to do that."
-     scroll-other-window)
-    ("other-window scroll-down"
-     "You should use `scroll-other-window-down' to do that."
-     scroll-other-window-down)
-    ("move-beginning-of-line indent-for-tab-command"
-     "You should use `back-to-indentation' to do that."
-     back-to-indentation)
-    ("other-window \\(find-file\\|ido-find-file\\)"
-     "You should use `find-file-other-window' to do that."
-     find-file-other-window)
-    ("kill-line \\(kill-line \\|delete-char \\)\\(move-end-of-line newline \\|next-line \\(open-line \\)*\\)yank"
-     "You should use `transpose-lines' to do that."
-     transpose-lines)
-    ("\\(beginning-of-defun set-mark-command \\(end-of-defun\\|forward-sexp\\)\\|end-of-defun set-mark-command \\(beginning-of-defun\\|backward-sexp\\)\\)"
-     "You should use `mark-defun' to do that."
-     mark-defun)
-    ("\\(backward-paragraph set-mark-command forward-paragraph\\|forward-paragraph set-mark-command backward-paragraph\\)"
-     "You should use `mark-paragraph' to do that."
-     mark-paragraph)
-    ("\\(beginning-of-buffer set-mark-command end-of-buffer\\|end-of-buffer set-mark-command beginning-of-buffer\\)"
-     "You should use `mark-whole-buffer' to do that."
-     mark-whole-buffer)
-    ("mark-paragraph kill-region \\(backward-paragraph \\|forward-paragraph \\)+yank"
-     "You should use `transpose-paragraphs' to do that."
-     transpose-paragraphs)
-    ("set-mark-command \\(forward-list \\|backward-list \\)+kill-region \\(forward-list \\|backward-list \\)+\\(newline \\)*yank"
-     "You should use `transpose-sexps' to do that."
-     transpose-sexps)
-    ("set-mark-command \\(forward-word \\|backward-word \\)kill-region \\(forward-word \\|backward-word \\)+yank"
-     "You should use `transpose-words' to do that."
-     transpose-words)
-    )
-  "A list of lists, each consisting of a command sequence regexp,
-a suggestion message, and any number of command name symbols for
-which keybindings will be printed."
-  :type 'alist
+(defcustom recs-pattern-file
+  (concat (file-name-directory (locate-library "recs")) "recs-patterns")
+  "Filename of the file from which recs loads its pattern definitions."
+  :type 'file
   :group 'recs)
 
 ;; Non-customizable variables
+
+(defvar recs-patterns nil
+  "A list of lists, each consisting of a command sequence regexp,
+a suggestion message, and any number of command name symbols for
+which keybindings will be printed.")
 
 (defvar recs-cmdstr ""
   "This is a ring-like string composed of the names of the most
@@ -282,12 +265,12 @@ front if it exceeds `recs-cmdstr-length'."
 
 (defun recs-detect-match ()
   "Attempt to match `recs-cmdstr' against all the regexps in
-`recs-cmd-regexps'.  Return a list of the matched string, the
+`recs-patterns'.  Return a list of the matched string, the
 pattern and the suggestion message when a match is found, nil
 otherwise."
   (catch 'result
     (let (case-fold-search)
-      (dolist (pattern recs-cmd-regexps nil)
+      (dolist (pattern recs-patterns nil)
         (and (string-match (car pattern) recs-cmdstr)
              (throw 'result (cons (match-string 0 recs-cmdstr)
                                   pattern)))))))
@@ -325,6 +308,21 @@ echo area.  Suggestion window selection is configured with
       (insert (format "%S\n" match))
       (append-to-file (point-min) (point-max) recs-log-file))))
 
+(defun recs-load-pattern-file ()
+  "Create a list of all the pattern definitions in
+`recs-pattern-file' and assign it to `recs-patterns'."
+  (interactive)
+  (if (file-exists-p recs-pattern-file)
+      (with-temp-buffer
+        (let (pattern patterns make-backup-files)
+          (insert-file-contents recs-pattern-file)
+          (goto-char (point-min))
+          (ignore-errors
+            (while (setq pattern (read (current-buffer)))
+              (push pattern patterns)))
+          (setq recs-patterns (nreverse patterns))))
+    (error "`recs-pattern-file' does not exist")))
+
 (defun recs-hook-fn ()
   "This is the hook function that gets added to
 `post-command-hook'."
@@ -344,6 +342,7 @@ echo area.  Suggestion window selection is configured with
   "Enable `recs-mode' when ENABLE is t, disable otherwise."
   (cond (enable (add-hook 'post-command-hook 'recs-hook-fn)
                 (recs-reset-cmdstr)
+                (recs-load-pattern-file)
                 (setq recs-mode t))
         (t      (remove-hook 'post-command-hook 'recs-hook-fn)
                 (setq recs-mode nil))))
