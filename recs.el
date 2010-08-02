@@ -33,14 +33,13 @@
 ;; pattern, training you to be a better Emacs user.
 ;;
 ;; recs.el is a simple command suggestion minor-mode.  It works by
-;; mapping commands to characters, creating a string out of the
-;; character mappings of recent commands, matching the resulting
-;; string against a list of user-defined regexps that correspond to
-;; command sequences, and finally suggesting a better way to do things
-;; when a match is found.  recs looks strictly at sequences of
-;; commands, not sequences of keystrokes, avoiding complications
-;; resulting from different keybindings in different modes.  This is
-;; considered a feature.
+;; logging the names of the commands you enter to ring-like string
+;; which is then matched against a list of command-sequence regexps.
+;; When a match is detected recs suggests a more efficient way of
+;; doing things.  recs looks strictly at sequences of commands, not
+;; sequences of keystrokes, avoiding complications resulting from
+;; different keybindings in different modes.  This is considered a
+;; feature.
 ;;
 ;; The advantage of this approach is that we can match any command
 ;; sequence that a regexp is powerful enough to match.
@@ -55,12 +54,12 @@
 ;;  - Suggestions that include `quoted-commands' display the
 ;;    keybindings of those commands.
 ;;
-;;  - Suggestions can be sent to the echo area or to a popup buffer.
-;;    Popping to a buffer can get really annoying, making it desirable
-;;    to learn quickly.
+;;  - Suggestions can be sent to the echo area or to another window.
+;;    Having the window selected out from under you can get really
+;;    annoying, making it desirable to learn quickly.
 ;;
 ;;  - A timer to set the minimum interval between suggestions, per the
-;;    Emacs TODO list ("C-h C-t") guideline.
+;;    Emacs TODO list ("C-h C-t") guidelines.
 ;;
 ;;  - Togglable `ding'
 ;;
@@ -76,45 +75,42 @@
 
 ;;; Configuration:
 ;;
-;;  - You'll need to set the mapping of commands to character strings
-;;    to your liking.  To do so, set the value of `recs-cmd-chars' to
-;;    an alist of command to character-string mappings like so:
-;;
-;;    (setq recs-cmd-chars
-;;      '((newline         . "l")
-;;        (previous-line   . "p")
-;;        (next-line       . "n")))
-;;
-;;  - You'll also need to set the mapping of command sequence regexps
-;;    to suggestion messages.  To do so, set the value of
-;;    `recs-cmd-regexps' to an alist of command-sequence-regexp to
-;;    suggestion-message mappings like so:
+;;  - recs comes with a number of default patterns, but you should
+;;    modify these to fit your usage.  The value of `recs-cmd-regexps'
+;;    should be a list of lists of command-sequence-regexp,
+;;    suggestion-message and commands like so:
 ;;
 ;;    (defvar recs-cmd-regexps
-;;      '(("lpe" . "You should use `open-line' to do that.")
-;;        ("ov"  . "You should use `scroll-other-window' to do that.")))
+;;      '(("newline previous-line move-end-of-line"
+;;         "You should use `open-line' to do that."
+;;         open-line)
+;;        ("newline indent-for-tab-command"
+;;         "You should use `newline-and-indent' to do that."
+;;         newline-and-indent)))
 ;;
-;;    Any commands quoted `like-this' will have extra information,
-;;    like their keybindings, included in the suggestion.
+;;    There can be any number of command name symbols at the end, for
+;;    which recs will print the keybindings if they exist.
 ;;
-;;  - To set the maximum length of the command sequences recs
-;;    can recognize:
+;;  - Other customizable variables include:
 ;;
-;;    (setq recs-cmd-string-length foo)
+;;    `recs-cmdstr-length'
+;;    `recs-suggestion-interval'
+;;    `recs-ding-on-suggestion'
+;;    `recs-suggestion-window'
+;;    `recs-cmdstr-length'
+;;    `recs-window-select'
+;;    `recs-hook'
+;;    `recs-suppress-suggestion'
 ;;
-;;  - You can set the minimum number of seconds between suggestions by
-;;    setting `recs-suggestion-interval':
-;;
-;;    (setq recs-suggestion-interval 60)
-;;
-;;    If set to nil, suggestions will be made for every match.
+;;    See the documentation for these variables below.
 ;;
 
 ;;; TODO:
 ;;
 ;;  - More default suggestions
-;;
-;;  - Mode specific command regexp matching?
+;;  - Log matched patterns
+;;  - Interactive pattern definition
+;;  - Separate config file
 ;;
 
 ;;; Code:
@@ -130,12 +126,10 @@ suggestion minor mode."
   :group 'help
   :version "1.0")
 
-(defcustom recs-null-cmd "_"
-  "This is a placeholder used to represent in `recs-cmdstr'
-commands not defined in `recs-cmd-chars'.  The value must be a
-string of length 1, and can not be used as a value in
-`recs-cmd-chars'."
-  :type 'string
+(defcustom recs-cmdstr-length 500
+  "Length of `recs-cmdstr'.  Increase this number in order to be
+able to detect longer patterns of commands."
+  :type 'integer
   :group 'recs)
 
 (defcustom recs-suggestion-interval nil
@@ -175,104 +169,62 @@ on match."
   :type 'boolean
   :group 'recs)
 
-(defcustom recs-cmd-chars
-  ;; These commands won't be in any order that makes sense.  I
-  ;; assigned characters to them mnemonically at the beginning, before
-  ;; running out of good ones, then alphabetized based on those
-  ;; characters to better see which characters were available.
-  '((move-beginning-of-line               . "a")
-    (backward-char                        . "b")
-    (backward-word                        . "B")
-    (backward-list                        . "C")
-    (set-mark-command                     . "c")
-    (delete-window                        . "d")
-    (delete-char                          . "D")
-    (backward-delete-char-untabify        . "E")
-    (move-end-of-line                     . "e")
-    (forward-char                         . "f")
-    (forward-word                         . "F")
-    (forward-list                         . "G")
-    (kill-ring-save                       . "g")
-    (indent-for-tab-command               . "i")
-    (find-file                            . "I")
-    (kill-line                            . "k")
-    (kill-region                          . "K")
-    (newline                              . "l")
-    (ido-find-file                        . "L")
-    (mark-paragraph                       . "M")
-    (next-line                            . "n")
-    (switch-to-buffer                     . "N")
-    (other-window                         . "o")
-    (ido-exit-minibuffer                  . "O")
-    (previous-line                        . "p")
-    (beginning-of-defun                   . "q")
-    (end-of-defun                         . "Q")
-    (beginning-of-buffer                  . "r")
-    (eval-last-sexp                       . "s")
-    (kill-word                            . "t")
-    (backward-kill-word                   . "T")
-    (scroll-up                            . "v")
-    (scroll-down                          . "V")
-    (end-of-buffer                        . "w")
-    (forward-paragraph                    . "x")
-    (yank                                 . "y")
-    (backward-paragraph                   . "z")
-    )
-  "This is an alist mapping commands to character strings.  It's
-used to convert sequences of commands into strings.  The
-character string defined in `recs-null-cmd' is reserved for
-commands not present in this list, and should not be used.
-Modify this list to suit your needs."
-  :type 'alist
-  :group 'recs)
-
 (defcustom recs-cmd-regexps
-  '(("lpe"                                . "You should use `open-line' to do that.")
-    ("li"                                 . "You should use `newline-and-indent' to do that.")
-    ("xs"                                 . "You should use `eval-defun' to do that.")
-    ("ov"                                 . "You should use `scroll-other-window' to do that.")
-    ("oV"                                 . "You should use `scroll-other-window-down' to do that.")
-    ("ai"                                 . "You should use `back-to-indentation' to do that.")
-    ("o[I\|L]"                            . "You should use `find-file-other-window' to do that.")
-    ("k[k\|D]ny"                          . "You should use `transpose-lines' to do that.")
-    ("qcQ\\|Qcq"                          . "You should use `mark-defun' to do that.")
-    ("zcx\\|xcz"                          . "You should use `mark-paragraph' to do that.")
-    ("rcw\\|wcr"                          . "You should use `mark-whole-buffer' to do that.")
-    ("MK[z\|x]+y"                         . "You should use `transpose-paragraphs' to do that.")
-    ("c[G\|C]+K[G\|C]+l*y"                . "You should use `transpose-sexps' to do that.")
-    ("c[F\|B]K[F\|B]+y"                   . "You should use `transpose-words' to do that.")
-    ;; These are annoying or unnecessary. Left here as examples:
-    ;; ("[g\|K]N.*y"                         . "You should use `copy-to-buffer' to do that.")
-    ;; ("BBt"                                . "You should use `backward-kill-word' to do that.")
-    ;; ("FFT"                                . "You should use `kill-word' to do that.")
-    ;; ("D\\{15\\}"                          . "You should use something like `kill-word' to do that.")
-    ;; ("E\\{15\\}"                          . "You should use something like `backward-kill-word' to do that.")
-    ;; ("n\\{20\\}"                          . "You should use something like `forward-paragraph'.")
-    ;; ("p\\{20\\}"                          . "You should use something like `backward-paragraph'.")
-    ;; ("f\\{20\\}"                          . "You should use something like `forward-word'.")
-    ;; ("b\\{20\\}"                          . "You should use something like `backward-word'.")
+  '(("newline previous-line move-end-of-line"
+     "You should use `open-line' to do that."
+     open-line)
+    ("newline indent-for-tab-command"
+     "You should use `newline-and-indent' to do that."
+     newline-and-indent)
+    ("forward-paragraph eval-last-sexp"
+     "You should use `eval-defun' to do that."
+     eval-defun)
+    ("other-window scroll-up"
+     "You should use `scroll-other-window' to do that."
+     scroll-other-window)
+    ("other-window scroll-down"
+     "You should use `scroll-other-window-down' to do that."
+     scroll-other-window-down)
+    ("move-beginning-of-line indent-for-tab-command"
+     "You should use `back-to-indentation' to do that."
+     back-to-indentation)
+    ("other-window \\(find-file\\|ido-find-file\\)"
+     "You should use `find-file-other-window' to do that."
+     find-file-other-window)
+    ("kill-line \\(kill-line \\|delete-char \\)next-line yank"
+     "You should use `transpose-lines' to do that."
+     transpose-lines)
+    ("\\(beginning-of-defun set-mark-command \\(end-of-defun\\|forward-sexp\\)\\|end-of-defun set-mark-command \\(beginning-of-defun\\|backward-sexp\\)\\)"
+     "You should use `mark-defun' to do that."
+     mark-defun)
+    ("\\(backward-paragraph set-mark-command forward-paragraph\\|forward-paragraph set-mark-command backward-paragraph\\)"
+     "You should use `mark-paragraph' to do that."
+     mark-paragraph)
+    ("\\(beginning-of-buffer set-mark-command end-of-buffer\\|end-of-buffer set-mark-command beginning-of-buffer\\)"
+     "You should use `mark-whole-buffer' to do that."
+     mark-whole-buffer)
+    ("mark-paragraph kill-region \\(backward-paragraph \\|forward-paragraph \\)+yank"
+     "You should use `transpose-paragraphs' to do that."
+     transpose-paragraphs)
+    ("set-mark-command \\(forward-list \\|backward-list \\)+kill-region \\(forward-list \\|backward-list \\)+\\(newline \\)*yank"
+     "You should use `transpose-sexps' to do that."
+     transpose-sexps)
+    ("set-mark-command \\(forward-word \\|backward-word \\)kill-region \\(forward-word \\|backward-word \\)+yank"
+     "You should use `transpose-words' to do that."
+     transpose-words)
     )
-  "This is an alist mapping command sequence regexps to
-suggestion messages.  Substrings quoted `like-this' are
-considered to be command names, and an attempt is made to
-determine and print their keybindings.  Modify this list to suit
-your needs."
+  "A list of lists consisting of a command sequence regexp, a
+suggestion message, and any number of command name symbols for
+which the keybindings will be printed."
   :type 'alist
   :group 'recs)
 
 ;; Non-customizable variables
 
-(defvar recs-cmdstr nil
-  "This is a ring-like string composed of characters that map to
-commands in `recs-cmd-chars'.  When a command is entered, its
-command-character (or `recs-null-cmd' if the command has no
-mapping in `recs-cmd-chars') is appended to the end of the
-string, and the oldest command-character is removed from the
-beginning.  Its length will always be `recs-cmdstr-length'.")
-
-(defvar recs-cmdstr-length 100
-  "Length of `recs-cmdstr'.  Increase this number in order to be
-able to detect longer patterns of commands.")
+(defvar recs-cmdstr ""
+  "This is a ring-like string composed of the names of the most
+recently entered commands, with the recent being appended to the
+end.  Its length should never exceed `recs-cmdstr-length'.")
 
 (defvar recs-last-suggestion-time nil
   "System seconds at which the last suggestion occured.")
@@ -300,35 +252,25 @@ seconds."
   (setq recs-last-suggestion-time (recs-current-time)))
 
 (defun recs-reset-cmdstr ()
-  "Create an empty cmdstr of length `recs-cmdstr-length'."
-  (setq recs-cmdstr
-        (make-string recs-cmdstr-length
-                     (string-to-char recs-null-cmd))))
-
-(defun recs-verify-cmdstr ()
-  "Verify that `recs-cmdstr' exists, is a string, and is of the
-length `recs-cmdstr-length'."
-  (unless (and recs-cmdstr
-               (stringp recs-cmdstr)
-               (= (length recs-cmdstr)
-                  recs-cmdstr-length))
-    (recs-reset-cmdstr))
-  recs-cmdstr)
+  "Reset `recs-cmdstr' to the empty string."
+  (setq recs-cmdstr ""))
 
 (defun recs-record-cmd ()
-  "Append to `recs-cmdstr' either the character that
-`this-original-command' maps to in `recs-cmd-chars', or
-`recs-null-cmd' if no match exists, remove the first char from
-`recs-cmdstr'."
-  (setq recs-cmdstr
-        (concat (subseq (recs-verify-cmdstr) 1)
-                (or (cdr (assoc this-original-command recs-cmd-chars))
-                    recs-null-cmd))))
+  "Append to `recs-cmdstr' the print name of
+`this-original-command' with a trailing space, and chop off the
+front if it exceeds `recs-cmdstr-length'."
+  (let* ((new (format "%s " this-original-command))
+         (str (concat recs-cmdstr new))
+         (len (length str)))
+    (setq recs-cmdstr (if (> len recs-cmdstr-length)
+                          (subseq str (- len recs-cmdstr-length))
+                        str))))
 
 (defun recs-detect-match ()
   "Attempt to match `recs-cmdstr' against all the regexps in
-`recs-cmd-regexps'.  Return the corresponging message if a match
-is found, nil otherwise."
+`recs-cmd-regexps'.  Return a list of the matched string, the
+pattern and the suggestion message when a match is found, nil
+otherwise."
   (catch 'result
     (let (case-fold-search)
       (dolist (pattern recs-cmd-regexps nil)
@@ -337,27 +279,20 @@ is found, nil otherwise."
                                   pattern)))))))
 
 (defun recs-princ-suggestion (match)
-  "Generate from MATCH and Princ the suggestion.  Bind
+  "Generate from MATCH and princ the suggestion.  Bind
 `standard-output' to the desired destination before calling."
   (flet ((mprinc (&rest args) (mapc 'princ args)))
-    (let ((msg (cddr match)) (pos 0))
-      (princ "You entered the command sequence:\n\n[")
-      (dolist (s (split-string (car match) "" t))
-        (dolist (elt recs-cmd-chars)
-          (when (string= s (cdr elt))
-            (mprinc "`" (car elt) "', "))))
-      (mprinc "]\n\n" msg "\n\n")
-      (while (string-match "`\\(.*?\\)'" msg pos)
-        (setq pos (match-end 1))
-        (let* ((cmd (intern (match-string 1 msg)))
-               (keys (where-is-internal (or (command-remapping cmd) cmd))))
-          (cond ((not (commandp cmd))
-                 (mprinc cmd " is actually not a command."))
-                (keys
-                 (mprinc "`" cmd "' is bound to: "
-                         (mapconcat 'key-description keys ", ")))
-                (t (mprinc cmd " has no keybindings."))))
-        (princ "\n")))))
+    (mprinc "You entered the command sequence:\n\n["
+            (car match) "]\n\n" (caddr match) "\n\n")
+    (dolist (cmd (cdddr match))
+      (let ((keys (where-is-internal (or (command-remapping cmd) cmd))))
+        (cond ((not (commandp cmd))
+               (mprinc "`" cmd "' is actually not a command."))
+              (keys
+               (mprinc "`" cmd "' is bound to: "
+                       (mapconcat 'key-description keys ", ")))
+              (t (mprinc "`" cmd "' has no keybindings."))))
+      (princ "\n"))))
 
 (defun recs-suggest (match)
   "Display the suggestion generated from MATCH in a separate
@@ -379,13 +314,12 @@ echo area.  Suggestion window selection is configured with
         (recs-reset-cmdstr)
         (recs-record-time)
         (run-hooks 'recs-hook)
-        (when recs-ding-on-suggestion (ding))
-        (unless recs-suppress-suggestion
-          (recs-suggest match))))))
+        (and recs-ding-on-suggestion (ding))
+        (or recs-suppress-suggestion
+            (recs-suggest match))))))
 
 (defun recs-enable (enable)
-  "Enable function `recs-mode' when ENABLE is t, disable
-otherwise."
+  "Enable `recs-mode' when ENABLE is t, disable otherwise."
   (cond (enable (add-hook 'post-command-hook 'recs-hook-fn)
                 (recs-reset-cmdstr)
                 (setq recs-mode t))
@@ -394,11 +328,11 @@ otherwise."
 
 ;;;###autoload
 (define-minor-mode recs-mode
-  "This toggles the recs minor mode.
+  "This toggles the recs-mode.
 
-If ARG is null, toggle recs.
-If ARG is a number greater than zero, turn on recs.
-Otherwise, turn off recs."
+If ARG is null, toggle recs-mode.
+If ARG is a number greater than zero, turn on recs-mode.
+Otherwise, turn off recs-mode."
   :lighter     " Recs"
   :init-value  nil
   :global      t
