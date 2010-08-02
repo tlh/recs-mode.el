@@ -111,9 +111,8 @@
 ;;; TODO:
 ;;
 ;;   - More default suggestions
-;;   - Log matched patterns
-;;   - Interactive pattern definition
 ;;   - Separate config file
+;;   - Interactive pattern definition
 ;;
 
 ;;; Code:
@@ -172,6 +171,18 @@ on match."
   :type 'boolean
   :group 'recs)
 
+(defcustom recs-log-file "~/.emacs.d/recs-log"
+  "Filename to which recs will log triggered suggestions if
+`recs-log-suggestions' is non-nil."
+  :type 'file
+  :group 'recs)
+
+(defcustom recs-log-suggestions nil
+  "NIL means don't log suggestions to `recs-log-file'. Otherwise,
+do."
+  :type 'boolean
+  :group 'recs)
+
 (defcustom recs-cmd-regexps
   '(("newline previous-line move-end-of-line"
      "You should use `open-line' to do that."
@@ -194,7 +205,7 @@ on match."
     ("other-window \\(find-file\\|ido-find-file\\)"
      "You should use `find-file-other-window' to do that."
      find-file-other-window)
-    ("kill-line \\(kill-line \\|delete-char \\)next-line yank"
+    ("kill-line \\(kill-line \\|delete-char \\)\\(move-end-of-line newline \\|next-line \\(open-line \\)*\\)yank"
      "You should use `transpose-lines' to do that."
      transpose-lines)
     ("\\(beginning-of-defun set-mark-command \\(end-of-defun\\|forward-sexp\\)\\|end-of-defun set-mark-command \\(beginning-of-defun\\|backward-sexp\\)\\)"
@@ -307,6 +318,13 @@ echo area.  Suggestion window selection is configured with
         (with-help-window "*recs*" (recs-princ-suggestion match)))
     (message (with-output-to-string (recs-princ-suggestion match)))))
 
+(defun recs-log-suggestion (match)
+  "Log MATCH to `recs-log-fle'."
+  (with-temp-buffer
+    (let (make-backup-files)
+      (insert (format "%S\n" match))
+      (append-to-file (point-min) (point-max) recs-log-file))))
+
 (defun recs-hook-fn ()
   "This is the hook function that gets added to
 `post-command-hook'."
@@ -318,6 +336,7 @@ echo area.  Suggestion window selection is configured with
         (recs-record-time)
         (run-hooks 'recs-hook)
         (and recs-ding-on-suggestion (ding))
+        (and recs-log-suggestions (recs-log-suggestion match))
         (or recs-suppress-suggestion
             (recs-suggest match))))))
 
