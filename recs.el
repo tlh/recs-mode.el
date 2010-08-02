@@ -33,13 +33,12 @@
 ;; pattern, training you to be a better Emacs user.
 ;;
 ;; recs.el is a simple command suggestion minor-mode.  It works by
-;; logging the names of the commands you enter to ring-like string
+;; recording the names of the commands you enter into ring-like string
 ;; which is then matched against a list of command-sequence regexps.
 ;; When a match is detected recs suggests a more efficient way of
 ;; doing things.  recs looks strictly at sequences of commands, not
 ;; sequences of keystrokes, avoiding complications resulting from
-;; different keybindings in different modes.  This is considered a
-;; feature.
+;; different keybindings in different modes.
 ;;
 ;; The advantage of this approach is that we can match any command
 ;; sequence that a regexp is powerful enough to match.
@@ -104,15 +103,17 @@
 ;;    `recs-hook'
 ;;    `recs-suppress-suggestion'
 ;;
-;;    See the documentation for these variables below.
+;;    See the documentation for these variables below, or enter:
+;;
+;;      C-u M-x customize-mode RET recs-mode RET
 ;;
 
 ;;; TODO:
 ;;
-;;  - More default suggestions
-;;  - Log matched patterns
-;;  - Interactive pattern definition
-;;  - Separate config file
+;;   - More default suggestions
+;;   - Log matched patterns
+;;   - Interactive pattern definition
+;;   - Separate config file
 ;;
 
 ;;; Code:
@@ -215,9 +216,9 @@ on match."
      "You should use `transpose-words' to do that."
      transpose-words)
     )
-  "A list of lists consisting of a command sequence regexp, a
-suggestion message, and any number of command name symbols for
-which the keybindings will be printed."
+  "A list of lists, each consisting of a command sequence regexp,
+a suggestion message, and any number of command name symbols for
+which keybindings will be printed."
   :type 'alist
   :group 'recs)
 
@@ -330,7 +331,7 @@ echo area.  Suggestion window selection is configured with
 
 ;;;###autoload
 (define-minor-mode recs-mode
-  "This toggles the recs-mode.
+  "This toggles recs-mode.
 
 If ARG is null, toggle recs-mode.
 If ARG is a number greater than zero, turn on recs-mode.
@@ -338,6 +339,7 @@ Otherwise, turn off recs-mode."
   :lighter     " Recs"
   :init-value  nil
   :global      t
+  :group       'recs
   (cond (noninteractive   (recs-enable nil))
         (recs-mode        (recs-enable t))
         (t                (recs-enable nil))))
