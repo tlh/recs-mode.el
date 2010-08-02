@@ -48,7 +48,7 @@
 ;; The disadvantage of this approach is that we can only match command
 ;; sequences that a regexp is powerful enough to match.
 
-;; Features:
+;;; Features:
 ;;
 ;;  - Definition of command patterns as standard Emacs regexps
 ;;
@@ -65,7 +65,7 @@
 ;;  - Togglable `ding'
 ;;
 
-;; Installation:
+;;; Installation:
 ;;
 ;;  - put `recs.el' somewhere on your Emacs load path
 ;;
@@ -74,7 +74,7 @@
 ;;    (recs-mode t)
 ;;
 
-;; Configuration:
+;;; Configuration:
 ;;
 ;;  - You'll need to set the mapping of commands to character strings
 ;;    to your liking.  To do so, set the value of `recs-cmd-chars' to
@@ -110,7 +110,7 @@
 ;;    If set to nil, suggestions will be made for every match.
 ;;
 
-;; TODO:
+;;; TODO:
 ;;
 ;;  - More default suggestions
 ;;
@@ -370,7 +370,7 @@ echo area.  Suggestion window selection is configured with
     (message (with-output-to-string (recs-princ-suggestion match)))))
 
 (defun recs-hook-fn ()
-  "This is the hook function that get added to
+  "This is the hook function that gets added to
 `post-command-hook'."
   (when (recs-check-time)
     (recs-record-cmd)
@@ -394,7 +394,7 @@ otherwise."
 
 ;;;###autoload
 (define-minor-mode recs-mode
-  "This toggle the recs minor mode.
+  "This toggles the recs minor mode.
 
 If ARG is null, toggle recs.
 If ARG is a number greater than zero, turn on recs.
