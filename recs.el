@@ -1,4 +1,4 @@
-;;; recs.el - [R]egular [E]xpression-based [C]ommand [S]uggester
+;;; recs.el --- [R]egular [E]xpression-based [C]ommand [S]uggester
 
 ;; Copyright (C) 2010 tlh <thunkout@gmail.com>
 
@@ -23,23 +23,23 @@
 ;; Software Foundation, Inc., 59 Temple Place, Suite 330, Boston,
 ;; MA 02111-1307 USA
 
-;; Commentary:
+;;; Commentary:
 ;;
 ;; Say you discover a new, more efficient sequence of commands to do
-;; something. You want to start using it, but your muscle memory
-;; continues to do it the old way. Before long you forget the new way,
-;; and continue doing things the old way. With recs, emacs can
+;; something.  You want to start using it, but your muscle memory
+;; continues to do it the old way.  Before long you forget the new
+;; way, and continue doing things the old way.  With recs, Emacs can
 ;; recognize the old pattern when you use it, and suggest the new the
-;; pattern, training you to be a better emacs user.
+;; pattern, training you to be a better Emacs user.
 ;;
-;; recs.el is a simple command suggestion minor-mode. It works by
+;; recs.el is a simple command suggestion minor-mode.  It works by
 ;; mapping commands to characters, creating a string out of the
 ;; character mappings of recent commands, matching the resulting
 ;; string against a list of user-defined regexps that correspond to
 ;; command sequences, and finally suggesting a better way to do things
-;; when a match is found. recs looks strictly at sequences of
+;; when a match is found.  recs looks strictly at sequences of
 ;; commands, not sequences of keystrokes, avoiding complications
-;; resulting from different keybindings in different modes. This is
+;; resulting from different keybindings in different modes.  This is
 ;; considered a feature.
 ;;
 ;; The advantage of this approach is that we can match any command
@@ -50,24 +50,24 @@
 
 ;; Features:
 ;;
-;;  - Definition of command patterns as standard emacs regexps
+;;  - Definition of command patterns as standard Emacs regexps
 ;;
 ;;  - Suggestions that include `quoted-commands' display the
 ;;    keybindings of those commands.
 ;;
-;;  - Suggestions can be sent to the echo area or to a popup
-;;    buffer. Popping to a buffer can get really annoying, making it
-;;    desirable to learn quickly.
+;;  - Suggestions can be sent to the echo area or to a popup buffer.
+;;    Popping to a buffer can get really annoying, making it desirable
+;;    to learn quickly.
 ;;
 ;;  - A timer to set the minimum interval between suggestions, per the
-;;    emacs TODO list ("C-h C-t") guideline.
+;;    Emacs TODO list ("C-h C-t") guideline.
 ;;
 ;;  - Togglable `ding'
 ;;
 
 ;; Installation:
 ;;
-;;  - put `recs.el' somewhere on your emacs load path
+;;  - put `recs.el' somewhere on your Emacs load path
 ;;
 ;;  - add these lines to your .emacs file:
 ;;    (require 'recs)
@@ -77,7 +77,7 @@
 ;; Configuration:
 ;;
 ;;  - You'll need to set the mapping of commands to character strings
-;;    to your liking. To do so, set the value of `recs-cmd-chars' to
+;;    to your liking.  To do so, set the value of `recs-cmd-chars' to
 ;;    an alist of command to character-string mappings like so:
 ;;
 ;;    (setq recs-cmd-chars
@@ -86,7 +86,7 @@
 ;;        (next-line       . "n")))
 ;;
 ;;  - You'll also need to set the mapping of command sequence regexps
-;;    to suggestion messages. To do so, set the value of
+;;    to suggestion messages.  To do so, set the value of
 ;;    `recs-cmd-regexps' to an alist of command-sequence-regexp to
 ;;    suggestion-message mappings like so:
 ;;
@@ -131,15 +131,16 @@ suggestion minor mode."
   :version "1.0")
 
 (defcustom recs-null-cmd "_"
-  "Placeholder used to represent in `recs-cmdstr' commands not
-  defined in `recs-cmd-chars'. Value must be a string of length
-  1, and can not be used as a value in `recs-cmd-chars'."
+  "This is a placeholder used to represent in `recs-cmdstr'
+commands not defined in `recs-cmd-chars'.  The value must be a
+string of length 1, and can not be used as a value in
+`recs-cmd-chars'."
   :type 'string
   :group 'recs)
 
 (defcustom recs-suggestion-interval nil
-  "Defines the minimum number of seconds between suggestions. If
-  nil, no time checking is performed."
+  "This defines the minimum number of seconds between
+suggestions.  If nil, no time checking is performed."
   :type 'boolean
   :group 'recs)
 
@@ -149,9 +150,9 @@ suggestion minor mode."
   :group 'recs)
 
 (defcustom recs-suggestion-window nil
-  "NIL means display suggestion in the echo area. t means display
-suggestion in a separate window. Window selection is defined by
-`recs-window-select'."
+  "NIL means display suggestion in the echo area.  t means
+display suggestion in a separate window.  Window selection is
+defined by `recs-window-select'."
   :type 'boolean
   :group 'recs)
 
@@ -167,18 +168,18 @@ suggestion in a separate window. Window selection is defined by
   :group 'recs)
 
 (defcustom recs-suppress-suggestion nil
-  "NIL means normal suggestions behavior. t means recs won't
-  actually make a suggestion when a match is found. This can be
-  used in conjunction with `recs-hook' to define your own
-  behavior on match."
+  "NIL means normal suggestions behavior.  t means recs won't
+actually make a suggestion when a match is found.  This can be
+used in conjunction with `recs-hook' to define your own behavior
+on match."
   :type 'boolean
   :group 'recs)
 
 (defcustom recs-cmd-chars
-  ;; These commands won't be in any order that makes sense. I assigned
-  ;; characters to them mnemonically at the beginning, before running
-  ;; out of good ones, then alphabetized based on those characters to
-  ;; better see which characters were available.
+  ;; These commands won't be in any order that makes sense.  I
+  ;; assigned characters to them mnemonically at the beginning, before
+  ;; running out of good ones, then alphabetized based on those
+  ;; characters to better see which characters were available.
   '((move-beginning-of-line               . "a")
     (backward-char                        . "b")
     (backward-word                        . "B")
@@ -217,11 +218,11 @@ suggestion in a separate window. Window selection is defined by
     (yank                                 . "y")
     (backward-paragraph                   . "z")
     )
-  "An alist mapping commands to character strings. It's used to
-convert sequences of commands into strings. The character string
-defined in `recs-null-cmd' is reserved for commands not present
-in this list, and should not be used. Modify this list to suit
-your needs."
+  "This is an alist mapping commands to character strings.  It's
+used to convert sequences of commands into strings.  The
+character string defined in `recs-null-cmd' is reserved for
+commands not present in this list, and should not be used.
+Modify this list to suit your needs."
   :type 'alist
   :group 'recs)
 
@@ -251,39 +252,40 @@ your needs."
     ;; ("f\\{20\\}"                          . "You should use something like `forward-word'.")
     ;; ("b\\{20\\}"                          . "You should use something like `backward-word'.")
     )
-  "An alist mapping command sequence regexps to suggestion
-  messages. Substrings quoted `like-this' are considered to be
-  command names, and an attempt is made to determine and print
-  their keybindings. Modify this list to suit your needs."
+  "This is an alist mapping command sequence regexps to
+suggestion messages.  Substrings quoted `like-this' are
+considered to be command names, and an attempt is made to
+determine and print their keybindings.  Modify this list to suit
+your needs."
   :type 'alist
   :group 'recs)
 
 ;; Non-customizable variables
 
 (defvar recs-cmdstr nil
-  "A ring-like string composed of characters that map to commands
-  in `recs-cmd-chars'. When a command is entered, its
-  command-character (or `recs-null-cmd' if the command has no
-  mapping in `recs-cmd-chars') is appended to the end of the
-  string, and the oldest command-character is removed from the
-  beginning. Its length will always be `recs-cmdstr-length'.")
+  "This is a ring-like string composed of characters that map to
+commands in `recs-cmd-chars'.  When a command is entered, its
+command-character (or `recs-null-cmd' if the command has no
+mapping in `recs-cmd-chars') is appended to the end of the
+string, and the oldest command-character is removed from the
+beginning.  Its length will always be `recs-cmdstr-length'.")
 
 (defvar recs-cmdstr-length 100
-  "Length of `recs-cmdstr'. Increase this number in order to be
-  able to detect longer patterns of commands.")
+  "Length of `recs-cmdstr'.  Increase this number in order to be
+able to detect longer patterns of commands.")
 
 (defvar recs-last-suggestion-time nil
   "System seconds at which the last suggestion occured.")
 
 (defun recs-current-time ()
-  "Returns the current system time in seconds."
+  "Return the current system time in seconds."
   (let ((time (current-time)))
     (+ (* (car time) (expt 2 16))
        (cadr time)
        (/ (caddr time) 1000000.0))))
 
 (defun recs-check-time ()
-  "Returns t if `recs-suggestion-interval' is nil, if
+  "Return t if `recs-suggestion-interval' is nil, if
 `recs-last-suggestion-time' is nil or if the sum of the previous
 two has been superceded, nil otherwise."
   (or (not recs-suggestion-interval)
@@ -293,18 +295,18 @@ two has been superceded, nil otherwise."
               recs-suggestion-interval))))
 
 (defun recs-record-time ()
-  "Sets `recs-last-suggestion-time' with the current time in
+  "Set `recs-last-suggestion-time' with the current time in
 seconds."
   (setq recs-last-suggestion-time (recs-current-time)))
 
 (defun recs-reset-cmdstr ()
-  "Makes and empty cmdstr of length `recs-cmdstr-length'."
+  "Create an empty cmdstr of length `recs-cmdstr-length'."
   (setq recs-cmdstr
         (make-string recs-cmdstr-length
                      (string-to-char recs-null-cmd))))
 
 (defun recs-verify-cmdstr ()
-  "Verifies that `recs-cmdstr' exists, is a string, and is of the
+  "Verify that `recs-cmdstr' exists, is a string, and is of the
 length `recs-cmdstr-length'."
   (unless (and recs-cmdstr
                (stringp recs-cmdstr)
@@ -314,18 +316,18 @@ length `recs-cmdstr-length'."
   recs-cmdstr)
 
 (defun recs-record-cmd ()
-  "Appends to `recs-cmdstr' either the character that
-  `this-original-command' maps to in `recs-cmd-chars', or
-  `recs-null-cmd' if no match exists. Also removes the first char
-  from `recs-cmdstr'."
+  "Append to `recs-cmdstr' either the character that
+`this-original-command' maps to in `recs-cmd-chars', or
+`recs-null-cmd' if no match exists, remove the first char from
+`recs-cmdstr'."
   (setq recs-cmdstr
         (concat (subseq (recs-verify-cmdstr) 1)
                 (or (cdr (assoc this-original-command recs-cmd-chars))
                     recs-null-cmd))))
 
 (defun recs-detect-match ()
-  "Attempts to match `recs-cmdstr' against all the regexps in
-`recs-cmd-regexps'. Returns the corresponging message if a match
+  "Attempt to match `recs-cmdstr' against all the regexps in
+`recs-cmd-regexps'.  Return the corresponging message if a match
 is found, nil otherwise."
   (catch 'result
     (let (case-fold-search)
@@ -335,8 +337,8 @@ is found, nil otherwise."
                                   pattern)))))))
 
 (defun recs-princ-suggestion (match)
-  "Princ the suggestion. Bind `standard-output' to the desired
-destination before calling."
+  "Generate from MATCH and Princ the suggestion.  Bind
+`standard-output' to the desired destination before calling."
   (flet ((mprinc (&rest args) (mapc 'princ args)))
     (let ((msg (cddr match)) (pos 0))
       (princ "You entered the command sequence:\n\n[")
@@ -358,17 +360,18 @@ destination before calling."
         (princ "\n")))))
 
 (defun recs-suggest (match)
-  "Displays suggestion to user in a separate buffer if
-  `recs-suggestion-window' is non-nil, otherwise in the echo
-  area. Suggestion window selection is configured with
-  `recs-window-select'."
+  "Display the suggestion generated from MATCH in a separate
+buffer if `recs-suggestion-window' is non-nil, otherwise in the
+echo area.  Suggestion window selection is configured with
+`recs-window-select'."
   (if recs-suggestion-window
       (let ((help-window-select recs-window-select))
         (with-help-window "*recs*" (recs-princ-suggestion match)))
     (message (with-output-to-string (recs-princ-suggestion match)))))
 
 (defun recs-hook-fn ()
-  "Hook function to add to `post-command-hook'."
+  "This is the hook function that get added to
+`post-command-hook'."
   (when (recs-check-time)
     (recs-record-cmd)
     (let ((match (recs-detect-match)))
@@ -381,7 +384,8 @@ destination before calling."
           (recs-suggest match))))))
 
 (defun recs-enable (enable)
-  "Enables `recs-mode' when ENABLE is t, disables otherwise."
+  "Enable function `recs-mode' when ENABLE is t, disable
+otherwise."
   (cond (enable (add-hook 'post-command-hook 'recs-hook-fn)
                 (recs-reset-cmdstr)
                 (setq recs-mode t))
@@ -390,7 +394,7 @@ destination before calling."
 
 ;;;###autoload
 (define-minor-mode recs-mode
-  "Toggle recs minor mode.
+  "This toggle the recs minor mode.
 
 If ARG is null, toggle recs.
 If ARG is a number greater than zero, turn on recs.
@@ -403,3 +407,5 @@ Otherwise, turn off recs."
         (t                (recs-enable nil))))
 
 (provide 'recs)
+
+;;; recs.el ends here
