@@ -46,17 +46,17 @@
 ;;
 ;; The disadvantage of this approach is that we can only match command
 ;; sequences that a regexp is powerful enough to match.
+;;
 
 ;;; Features:
 ;;
 ;;  - Definition of command patterns as standard Emacs regexps
 ;;
-;;  - Suggestions that include `quoted-commands' display the
-;;    keybindings of those commands.
-;;
 ;;  - Suggestions can be sent to the echo area or to another window.
 ;;    Having the window selected out from under you can get really
 ;;    annoying, making it desirable to learn quickly.
+;;
+;;  - A hook that's run whenever a match is detected.
 ;;
 ;;  - A timer to set the minimum interval between suggestions, per the
 ;;    Emacs TODO list ("C-h C-t") guidelines.
@@ -77,8 +77,9 @@
 ;;
 ;;  - recs comes with a number of default patterns, but you should
 ;;    modify these to fit your usage.  The value of `recs-cmd-regexps'
-;;    should be a list of lists of command-sequence-regexp,
-;;    suggestion-message and commands like so:
+;;    should be a list of lists of a command-sequence-regexp, a
+;;    suggestion-message and any number of command name symbols like
+;;    so:
 ;;
 ;;    (defvar recs-cmd-regexps
 ;;      '(("newline previous-line move-end-of-line"
@@ -86,10 +87,11 @@
 ;;         open-line)
 ;;        ("newline indent-for-tab-command"
 ;;         "You should use `newline-and-indent' to do that."
-;;         newline-and-indent)))
+;;         newline-and-indent
+;;         some-other-command)))
 ;;
-;;    There can be any number of command name symbols at the end, for
-;;    which recs will print the keybindings if they exist.
+;;    recs will print the keybindings of the commands listed at the
+;;    end, if keybindings for them exist.
 ;;
 ;;  - Other customizable variables include:
 ;;
