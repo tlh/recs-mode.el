@@ -231,7 +231,7 @@ end.  Its length should never exceed `recs-cmdstr-max'.")
   "Return abbreviated `current-time' in seconds."
   (cadr (current-time)))
 
-(defun recscheck-time ()
+(defun recs-check-time ()
   "Return t if `recs-suggestion-interval' is nil, if
 `recs-last-suggestion-time' is nil or if the sum of the previous
 two has been superceded, nil otherwise."
