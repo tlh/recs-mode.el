@@ -115,16 +115,15 @@
 ;;
 ;;  - Other customizable variables include:
 ;;
-;;    `recs-cmdstr-length'
+;;    `recs-cmdstr-max'
 ;;    `recs-suggestion-interval'
 ;;    `recs-ding-on-suggestion'
 ;;    `recs-suggestion-window'
-;;    `recs-cmdstr-length'
 ;;    `recs-window-select'
 ;;    `recs-hook'
 ;;    `recs-suppress-suggestion'
-;;    `recs-log-suggestions'
 ;;    `recs-log-file'
+;;    `recs-log-suggestions'
 ;;
 ;;    See the documentation for these variables below, or enter:
 ;;
@@ -142,7 +141,7 @@
 (eval-when-compile
   (require 'cl))
 
-;; Customize
+;; Customization
 
 (defgroup recs nil
   "[R]egular [E]xpression-based [C]ommand [S]uggester: a command
@@ -150,9 +149,9 @@ suggestion minor mode."
   :group 'help
   :version "1.0")
 
-(defcustom recs-cmdstr-length 500
-  "Length of `recs-cmdstr'.  Increase this number in order to be
-able to detect longer patterns of commands."
+(defcustom recs-cmdstr-max 500
+  "Max length of `recs-cmdstr'.  Increase this number in order to
+be able to detect longer patterns of commands."
   :type 'integer
   :group 'recs)
 
@@ -221,19 +220,18 @@ which keybindings will be printed.")
 (defvar recs-cmdstr ""
   "This is a ring-like string composed of the names of the most
 recently entered commands, with the recent being appended to the
-end.  Its length should never exceed `recs-cmdstr-length'.")
+end.  Its length should never exceed `recs-cmdstr-max'.")
 
 (defvar recs-last-suggestion-time nil
   "System seconds at which the last suggestion occured.")
 
-(defun recs-current-time ()
-  "Return the current system time in seconds."
-  (let ((time (current-time)))
-    (+ (* (car time) (expt 2 16))
-       (cadr time)
-       (/ (caddr time) 1000000.0))))
+;; Functions
 
-(defun recs-check-time ()
+(defun recs-current-time ()
+  "Return abbreviated `current-time' in seconds."
+  (cadr (current-time)))
+
+(defun recscheck-time ()
   "Return t if `recs-suggestion-interval' is nil, if
 `recs-last-suggestion-time' is nil or if the sum of the previous
 two has been superceded, nil otherwise."
@@ -255,12 +253,12 @@ seconds."
 (defun recs-record-cmd ()
   "Append to `recs-cmdstr' the print name of
 `this-original-command' with a trailing space, and chop off the
-front if it exceeds `recs-cmdstr-length'."
+front if it exceeds `recs-cmdstr-max'."
   (let* ((new (format "%s " this-original-command))
          (str (concat recs-cmdstr new))
          (len (length str)))
-    (setq recs-cmdstr (if (> len recs-cmdstr-length)
-                          (subseq str (- len recs-cmdstr-length))
+    (setq recs-cmdstr (if (> len recs-cmdstr-max)
+                          (subseq str (- len recs-cmdstr-max))
                         str))))
 
 (defun recs-detect-match ()
@@ -346,6 +344,8 @@ echo area.  Suggestion window selection is configured with
                 (setq recs-mode t))
         (t      (remove-hook 'post-command-hook 'recs-hook-fn)
                 (setq recs-mode nil))))
+
+;; mode definition
 
 ;;;###autoload
 (define-minor-mode recs-mode
