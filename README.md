@@ -63,20 +63,20 @@ sequences that a regexp is powerful enough to match.
    name symbols:
 
         ("newline previous-line move-end-of-line"
-         "You should use \`open-line' to do that."
+         "You should use `open-line' to do that."
          open-line)
 
         ("\\(some-command \\| some-other-command \\)+newline yank"
-         "You should use \`better-command' or \`even-better-command'
+         "You should use `better-command' or `even-better-command'
           to do that."
          better-command
          even-better-command)
 
-   Commands listed in suggestions should quoted like \`this', allowing
-   emacs' help system to link to its documentation.  recs will print
-   the keybindings, if they exist, of the commands at the end of the
-   list.  These should typically be the same ones that are \`quoted'
-   in the suggestion message.
+   Commands listed in suggestions should be quoted like \`this',
+   allowing emacs' help system to link to its documentation.  recs
+   will print the keybindings, if they exist, of the commands at the
+   end of the list.  These should typically be the same ones that are
+   \`quoted' in the suggestion message.
 
    After modifying the contents of <tt>recs-pattern-file</tt> you will
    need to reload the file for the changes to take effect.  You can do
@@ -92,15 +92,15 @@ sequences that a regexp is powerful enough to match.
 
  - Other customizable variables include:
 
-        \`recs-cmdstr-max'
-        \`recs-suggestion-interval'
-        \`recs-ding-on-suggestion'
-        \`recs-suggestion-window'
-        \`recs-window-select'
-        \`recs-hook'
-        \`recs-suppress-suggestion'
-        \`recs-log-file'
-        \`recs-log-suggestions'
+        `recs-cmdstr-max'
+        `recs-suggestion-interval'
+        `recs-ding-on-suggestion'
+        `recs-suggestion-window'
+        `recs-window-select'
+        `recs-hook'
+        `recs-suppress-suggestion'
+        `recs-log-file'
+        `recs-log-suggestions'
 
    See the documentation for these variables in <tt>recs.el</tt>, or
    enter:
