@@ -33,11 +33,11 @@
 ;; pattern, training you to be a better Emacs user.
 ;;
 ;; recs.el is a simple command suggestion minor-mode.  It works by
-;; recording the names of the commands you enter into ring-like string
-;; which is then matched against a list of command-sequence regexps.
-;; When a match is detected recs suggests a more efficient way of
-;; doing things.  recs looks strictly at sequences of commands, not
-;; sequences of keystrokes, avoiding complications resulting from
+;; recording the names of the commands you enter into a ring-like
+;; string which is then matched against a list of command-pattern
+;; regexps.  When a match is detected recs suggests a more efficient
+;; way of doing things.  recs looks strictly at sequences of commands,
+;; not sequences of keystrokes, avoiding complications resulting from
 ;; different keybindings in different modes.
 ;;
 ;; The advantage of this approach is that we can match any command
@@ -83,7 +83,7 @@
 ;;
 ;;      (setq recs-pattern-file "/path/to/new/recs-patterns")
 ;;
-;;    recs patterns consist of a list containing a command sequence
+;;    A recs pattern consists of a list containing a command sequence
 ;;    regular expression, a suggestion message, and any number of
 ;;    command name symbols:
 ;;
