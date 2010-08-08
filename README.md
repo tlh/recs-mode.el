@@ -51,7 +51,7 @@ sequences that a regexp is powerful enough to match.
 
  - recs comes with a number of default patterns, but you should modify
    these to fit your usage.  The default patterns are stored in the
-   file <tt>recs-patterns<tt> in the recs directory.  You should copy
+   file <tt>recs-patterns</tt> in the recs directory.  You should copy
    that file somewhere sensible, like <tt>~/.emacs.d/</tt>, and
    customize it there.  You will need to set the value of
    <tt>recs-pattern-file</tt> to this new location:
