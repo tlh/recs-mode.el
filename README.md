@@ -43,8 +43,8 @@ sequences that a regexp is powerful enough to match.
 
  - add these lines to your <tt>.emacs</tt> file:
 
-`(require 'recs)`
-`(recs-mode t)`
+`(require 'recs)
+ (recs-mode t)`
 
 
 ## Configuration
