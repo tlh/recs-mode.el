@@ -49,7 +49,7 @@ sequences that a regexp is powerful enough to match.
 
 ## Installation
 
- - put `recs.el` somewhere on your Emacs load path
+ - put `recs-mode.el` somewhere on your Emacs load path
 
  - add these lines to your `.emacs` file:
 
@@ -109,11 +109,11 @@ sequences that a regexp is powerful enough to match.
         recs-log-file
         recs-log-suggestions
 
-   See the documentation for these variables in `recs.el`, or
+   See the documentation for these variables in `recs-mode.el`, or
    enter:
 
         C-u M-x customize-mode RET recs-mode RET
 
 ## License
 
-recs-mode is released under the GNU GPL. See `recs.el`
+recs-mode is released under the GNU GPL. See `recs-mode.el`
