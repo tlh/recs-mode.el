@@ -2,7 +2,7 @@
 
 ;; Copyright (C) 2010 tlh <thunkout@gmail.com>
 
-;; File:      recs.el
+;; File:      recs-mode.el
 ;; Author:    tlh <thunkout@gmail.com>
 ;; Created:   2010-07-29
 ;; Version:   1.0
@@ -29,8 +29,8 @@
 ;; recs-mode is a simple command suggestion minor mode for GNU
 ;; Emacs. recs-mode is free software, licensed under the GNU GPL.
 ;;
-;; The latest version of recs-mode can always be found [here][]. You can
-;; also clone the repo by running
+;; The latest version of recs-mode can always be found [here][]. You
+;; can also clone the repo by running
 ;;
 ;;     git clone git://github.com/tlh/recs-mode.el
 ;;
@@ -38,24 +38,24 @@
 ;;
 ;; Say you discover a new, more efficient sequence of commands to do
 ;; something.  You want to start using it, but your muscle memory
-;; continues to do it the old way.  Before long you forget the new way,
-;; and continue doing things the old way.  With recs-mode, Emacs can
-;; recognize the old pattern when you use it, and suggest the new the
-;; pattern, training you to be a better Emacs user.
+;; continues to do it the old way.  Before long you forget the new
+;; way, and nothing changes.  With recs-mode, Emacs can recognize the
+;; old pattern when you use it, and suggest the new the pattern,
+;; training you to be a better Emacs user.
 ;;
-;; recs-mode works by recording the names of the commands you enter into
-;; a ring-like string, which is then matched against a list of command
-;; name regular expressions.  When a match is detected, recs-mode
-;; suggests a more efficient way of doing things.  recs-mode looks
-;; strictly at sequences of commands, not sequences of keystrokes,
-;; avoiding complications resulting from different keybindings in
-;; different modes.
+;; recs-mode works by recording the names of the commands you enter
+;; into a ring-like string, which is then matched against a list of
+;; command name regular expressions.  When a match is detected,
+;; recs-mode suggests a more efficient way of doing things.  recs-mode
+;; looks strictly at sequences of commands, not sequences of
+;; keystrokes, avoiding complications resulting from different
+;; keybindings in different modes.
 ;;
 ;; The advantage of this approach is that we can detect any command
 ;; sequence that a regexp is powerful enough to match.
 ;;
-;; The disadvantage of this approach is that we can only detect command
-;; sequences that a regexp is powerful enough to match.
+;; The disadvantage of this approach is that we can only detect
+;; command sequences that a regexp is powerful enough to match.
 ;;
 
 ;;; Features:
@@ -69,18 +69,18 @@
 ;;  - A timer to set the minimum interval between suggestions, per the
 ;;    Emacs TODO list (`C-h C-t`) guidelines.
 ;;
-;;  - A hook that's run whenever a match is detected. This can be used in
-;;    conjunction with `recs-suppress-suggestion` and
-;;    `recs-ding-on-suggestion` to define completely different behavior
-;;    on match detection.
+;;  - A hook that's run whenever a match is detected. This can be used
+;;    in conjunction with `recs-suppress-suggestion` and
+;;    `recs-ding-on-suggestion` to define completely different
+;;    behavior on match detection.
 
 ;;; Installation:
 ;;
-;;  - put `recs.el` somewhere on your Emacs load path
+;;  - put `recs-mode.el` somewhere on your Emacs load path
 ;;
 ;;  - add these lines to your `.emacs` file:
 ;;
-;;         (require 'recs)
+;;         (require 'recs-mode)
 ;;         (recs-mode t)
 ;;
 
@@ -132,12 +132,12 @@
 ;;         recs-ding-on-suggestion
 ;;         recs-suggestion-window
 ;;         recs-window-select
-;;         recs-hook
+;;         recs-mode-hook
 ;;         recs-suppress-suggestion
 ;;         recs-log-file
 ;;         recs-log-suggestions
 ;;
-;;    See the documentation for these variables in `recs.el`, or
+;;    See the documentation for these variables in `recs-mode.el`, or
 ;;    enter:
 ;;
 ;;         C-u M-x customize-mode RET recs-mode RET
@@ -185,7 +185,7 @@ defined by `recs-window-select'."
   :type 'symbol
   :group 'recs)
 
-(defcustom recs-hook nil
+(defcustom recs-mode-hook nil
   "Hook run whenever a suggestion is triggered."
   :type 'hook
   :group 'recs)
@@ -193,8 +193,8 @@ defined by `recs-window-select'."
 (defcustom recs-suppress-suggestion nil
   "NIL means normal suggestions behavior.  t means recs won't
 actually make a suggestion when a match is found.  This can be
-used in conjunction with `recs-hook' to define your own behavior
-on match."
+used in conjunction with `recs-mode-hook' to define your own
+behavior on match."
   :type 'boolean
   :group 'recs)
 
@@ -211,7 +211,8 @@ do."
   :group 'recs)
 
 (defcustom recs-pattern-file
-  (concat (file-name-directory (locate-library "recs")) "recs-patterns")
+  (concat (file-name-directory (locate-library "recs-mode"))
+          "recs-patterns")
   "Filename of the file from which recs loads its pattern definitions."
   :type 'file
   :group 'recs)
@@ -336,7 +337,7 @@ echo area.  Suggestion window selection is configured with
       (when match
         (recs-reset-cmdstr)
         (recs-record-time)
-        (run-hooks 'recs-hook)
+        (run-hooks 'recs-mode-hook)
         (and recs-ding-on-suggestion (ding))
         (and recs-log-suggestions (recs-log-suggestion match))
         (or recs-suppress-suggestion
@@ -368,6 +369,6 @@ Otherwise, turn off recs-mode."
         (recs-mode        (recs-enable t))
         (t                (recs-enable nil))))
 
-(provide 'recs)
+(provide 'recs-mode)
 
-;;; recs.el ends here
+;;; recs-mode.el ends here

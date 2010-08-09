@@ -13,9 +13,9 @@ also clone the repo by running
 Say you discover a new, more efficient sequence of commands to do
 something.  You want to start using it, but your muscle memory
 continues to do it the old way.  Before long you forget the new way,
-and continue doing things the old way.  With recs-mode, Emacs can
-recognize the old pattern when you use it, and suggest the new the
-pattern, training you to be a better Emacs user.
+and nothing changes.  With recs-mode, Emacs can recognize the old
+pattern when you use it, and suggest the new the pattern, training you
+to be a better Emacs user.
 
 recs-mode works by recording the names of the commands you enter into
 a ring-like string, which is then matched against a list of command
