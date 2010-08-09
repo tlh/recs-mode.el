@@ -33,8 +33,8 @@ sequences that a regexp is powerful enough to match.
    Emacs TODO list <tt>C-h C-t</tt> guidelines.
 
  - A hook that's run whenever a match is detected. This can be used in
-   conjunction with <tt>`recs-suppress-suggestion'</tt> and
-   <tt>`recs-ding-on-suggestion'</tt> to define completely different
+   conjunction with <tt>\`recs-suppress-suggestion'</tt> and
+   <tt>\`recs-ding-on-suggestion'</tt> to define completely different
    behavior on match detection.
 
 ## Installation
@@ -44,8 +44,7 @@ sequences that a regexp is powerful enough to match.
  - add these lines to your <tt>.emacs</tt> file:
 
         (require 'recs)
-        (recs-mode t)`
-
+        (recs-mode t)
 
 ## Configuration
 
@@ -73,10 +72,10 @@ sequences that a regexp is powerful enough to match.
          even-better-command)
 
    Commands listed in suggestions should be quoted like
-   <tt>`this'</tt>, allowing emacs' help system to link to its
+   <tt>\`this'</tt>, allowing emacs' help system to link to its
    documentation.  recs will print the keybindings, if they exist, of
    the commands at the end of the list.  These should typically be the
-   same ones that are <tt>`quoted'</tt> in the suggestion message.
+   same ones that are <tt>\`quoted'</tt> in the suggestion message.
 
    After modifying the contents of <tt>recs-pattern-file</tt> you will
    need to reload the file for the changes to take effect.  You can do
