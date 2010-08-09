@@ -1,4 +1,4 @@
-# recs - The [R]egular [E]xpression-based [C]ommand [S]uggester
+# recs-mode --- [R]eg[E]xp-based [C]ommand [S]uggestion
 
 recs-mode is a simple command suggestion minor mode for GNU
 Emacs. recs-mode is free software, licensed under the GNU GPL.
@@ -53,7 +53,7 @@ sequences that a regexp is powerful enough to match.
 
  - add these lines to your `.emacs` file:
 
-        (require 'recs)
+        (require 'recs-mode)
         (recs-mode t)
 
 ## Configuration
@@ -104,7 +104,7 @@ sequences that a regexp is powerful enough to match.
         recs-ding-on-suggestion
         recs-suggestion-window
         recs-window-select
-        recs-hook
+        recs-mode-hook
         recs-suppress-suggestion
         recs-log-file
         recs-log-suggestions
