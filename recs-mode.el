@@ -1,4 +1,4 @@
-;;; recs.el --- [R]egular [E]xpression-based [C]ommand [S]uggester
+;;; recs-mode.el --- [R]eg[E]xp-based [C]ommand [S]uggestion
 
 ;; Copyright (C) 2010 tlh <thunkout@gmail.com>
 
@@ -7,43 +7,54 @@
 ;; Created:   2010-07-29
 ;; Version:   1.0
 ;; Keywords:  command suggestion regexp
-
+;;
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
 ;; published by the Free Software Foundation; either version 2 of
 ;; the License, or (at your option) any later version.
-
+;;
 ;; This program is distributed in the hope that it will be
 ;; useful, but WITHOUT ANY WARRANTY; without even the implied
 ;; warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 ;; PURPOSE.  See the GNU General Public License for more details.
-
+;;
 ;; You should have received a copy of the GNU General Public
 ;; License along with this program; if not, write to the Free
 ;; Software Foundation, Inc., 59 Temple Place, Suite 330, Boston,
 ;; MA 02111-1307 USA
+;;
 
 ;;; Commentary:
 ;;
+;; recs-mode is a simple command suggestion minor mode for GNU
+;; Emacs. recs-mode is free software, licensed under the GNU GPL.
+;;
+;; The latest version of recs-mode can always be found [here][]. You can
+;; also clone the repo by running
+;;
+;;     git clone git://github.com/tlh/recs-mode.el
+;;
+;;  [here]: http://github.com/tlh/recs-mode.el
+;;
 ;; Say you discover a new, more efficient sequence of commands to do
 ;; something.  You want to start using it, but your muscle memory
-;; continues to do it the old way.  Before long you forget the new
-;; way, and continue doing things the old way.  With recs, Emacs can
+;; continues to do it the old way.  Before long you forget the new way,
+;; and continue doing things the old way.  With recs-mode, Emacs can
 ;; recognize the old pattern when you use it, and suggest the new the
 ;; pattern, training you to be a better Emacs user.
 ;;
-;; recs.el is a simple command suggestion minor-mode.  It works by
-;; recording the names of the commands you enter into a ring-like
-;; string which is then matched against a list of command-pattern
-;; regexps.  When a match is detected recs suggests a more efficient
-;; way of doing things.  recs looks strictly at sequences of commands,
-;; not sequences of keystrokes, avoiding complications resulting from
-;; different keybindings in different modes.
+;; recs-mode works by recording the names of the commands you enter into
+;; a ring-like string, which is then matched against a list of command
+;; name regular expressions.  When a match is detected, recs-mode
+;; suggests a more efficient way of doing things.  recs-mode looks
+;; strictly at sequences of commands, not sequences of keystrokes,
+;; avoiding complications resulting from different keybindings in
+;; different modes.
 ;;
-;; The advantage of this approach is that we can match any command
+;; The advantage of this approach is that we can detect any command
 ;; sequence that a regexp is powerful enough to match.
 ;;
-;; The disadvantage of this approach is that we can only match command
+;; The disadvantage of this approach is that we can only detect command
 ;; sequences that a regexp is powerful enough to match.
 ;;
 
@@ -55,86 +66,81 @@
 ;;    Having the window selected out from under you can get really
 ;;    annoying, making it desirable to learn quickly.
 ;;
-;;  - A hook that's run whenever a match is detected.
-;;
 ;;  - A timer to set the minimum interval between suggestions, per the
-;;    Emacs TODO list ("C-h C-t") guidelines.
+;;    Emacs TODO list (`C-h C-t`) guidelines.
 ;;
-;;  - Togglable `ding'
-;;
+;;  - A hook that's run whenever a match is detected. This can be used in
+;;    conjunction with `recs-suppress-suggestion` and
+;;    `recs-ding-on-suggestion` to define completely different behavior
+;;    on match detection.
 
 ;;; Installation:
 ;;
-;;  - put `recs.el' somewhere on your Emacs load path
+;;  - put `recs.el` somewhere on your Emacs load path
 ;;
-;;  - add these lines to your .emacs file:
-;;    (require 'recs)
-;;    (recs-mode t)
+;;  - add these lines to your `.emacs` file:
+;;
+;;         (require 'recs)
+;;         (recs-mode t)
 ;;
 
 ;;; Configuration:
 ;;
-;;  - recs comes with a number of default patterns, but you should
-;;    modify these to fit your usage.  The default patterns are stored
-;;    in the file "recs-patterns" in the recs directory.  You should
-;;    copy that file somewhere sensible, like "~/.emacs.d/", and
+;;  - recs-mode comes with a number of default patterns, but you should
+;;    modify these to fit your usage.  The default patterns are stored in
+;;    the file `recs-patterns` that comes with recs-mode.  You should
+;;    copy that file somewhere sensible, like `~/.emacs.d/`, and
 ;;    customize it there.  You will need to set the value of
-;;    `recs-pattern-file' to this new location:
+;;    `recs-pattern-file` to the new location:
 ;;
-;;      (setq recs-pattern-file "/path/to/new/recs-patterns")
+;;         (setq recs-pattern-file "/path/to/new/recs-patterns")
 ;;
-;;    A recs pattern consists of a list containing a command sequence
-;;    regular expression, a suggestion message, and any number of
-;;    command name symbols:
+;;    A recs-mode pattern consists of a list containing a command
+;;    sequence regular expression, a suggestion message, and any number
+;;    of command name symbols:
 ;;
-;;      ("newline previous-line move-end-of-line"
-;;       "You should use `open-line' to do that."
-;;       open-line)
+;;         ("newline previous-line move-end-of-line"
+;;          "You should use `open-line' to do that."
+;;          open-line)
 ;;
-;;      ("\\(some-command \\| some-other-command \\)+newline yank"
-;;       "You should use `better-command' or `even-better-command'
-;;        to do that."
-;;       better-command
-;;       even-better-command)
+;;         ("\\(some-command \\| some-other-command \\)+newline yank"
+;;          "You should use `better-command' or `even-better-command'
+;;           to do that."
+;;          better-command
+;;          even-better-command)
 ;;
-;;    recs will print the keybindings, if they exist, of the commands
-;;    at the end of the list.  The commands listed should typically be
-;;    the same commands that are `quoted' in the suggestion message.
+;;    Commands listed in suggestions should be quoted like `\`this'`,
+;;    allowing emacs' help system to link to its documentation.
+;;    recs-mode will print the keybindings, if they exist, of the
+;;    commands at the end of the list.  These should typically be the
+;;    same ones that are quoted in the suggestion message.
 ;;
-;;    After modifying the contents of `recs-pattern-file' you will
-;;    need to reload the file for the changes to take effect.  You can
-;;    do this either by toggling recs-mode off and on with two
-;;    invocations of:
+;;    After modifying the contents of `recs-pattern-file` you will need
+;;    to reload the file for the changes to take effect.  You can do that
+;;    either by toggling recs-mode off and on with two invocations of:
 ;;
-;;      M-x recs-mode
+;;         M-x recs-mode
 ;;
 ;;    or by issuing the command:
 ;;
-;;      M-x recs-load-pattern-file
-;;
+;;         M-x recs-load-pattern-file
 ;;
 ;;  - Other customizable variables include:
 ;;
-;;    `recs-cmdstr-max'
-;;    `recs-suggestion-interval'
-;;    `recs-ding-on-suggestion'
-;;    `recs-suggestion-window'
-;;    `recs-window-select'
-;;    `recs-hook'
-;;    `recs-suppress-suggestion'
-;;    `recs-log-file'
-;;    `recs-log-suggestions'
+;;         recs-cmdstr-max
+;;         recs-suggestion-interval
+;;         recs-ding-on-suggestion
+;;         recs-suggestion-window
+;;         recs-window-select
+;;         recs-hook
+;;         recs-suppress-suggestion
+;;         recs-log-file
+;;         recs-log-suggestions
 ;;
-;;    See the documentation for these variables below, or enter:
+;;    See the documentation for these variables in `recs.el`, or
+;;    enter:
 ;;
-;;      "C-u M-x customize-mode RET recs-mode RET"
-;;
-
-;;; TODO:
-;;
-;;   - More default suggestions
-;;   - Interactive pattern definition
-;;
+;;         C-u M-x customize-mode RET recs-mode RET
 
 ;;; Code:
 
