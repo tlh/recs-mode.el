@@ -43,8 +43,8 @@ sequences that a regexp is powerful enough to match.
 
  - add these lines to your <tt>.emacs</tt> file:
 
-`(require 'recs)
- (recs-mode t)`
+        (require 'recs)
+        (recs-mode t)`
 
 
 ## Configuration
@@ -72,11 +72,11 @@ sequences that a regexp is powerful enough to match.
          better-command
          even-better-command)
 
-   Commands listed in suggestions should be quoted like \`this',
-   allowing emacs' help system to link to its documentation.  recs
-   will print the keybindings, if they exist, of the commands at the
-   end of the list.  These should typically be the same ones that are
-   \`quoted' in the suggestion message.
+   Commands listed in suggestions should be quoted like
+   <tt>`this'</tt>, allowing emacs' help system to link to its
+   documentation.  recs will print the keybindings, if they exist, of
+   the commands at the end of the list.  These should typically be the
+   same ones that are <tt>`quoted'</tt> in the suggestion message.
 
    After modifying the contents of <tt>recs-pattern-file</tt> you will
    need to reload the file for the changes to take effect.  You can do
@@ -88,7 +88,6 @@ sequences that a regexp is powerful enough to match.
    or by issuing the command:
 
         M-x recs-load-pattern-file
-
 
  - Other customizable variables include:
 
@@ -105,7 +104,7 @@ sequences that a regexp is powerful enough to match.
    See the documentation for these variables in <tt>recs.el</tt>, or
    enter:
 
-        "C-u M-x customize-mode RET recs-mode RET"
+        C-u M-x customize-mode RET recs-mode RET
 
 ## License
 
