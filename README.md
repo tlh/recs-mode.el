@@ -7,13 +7,13 @@ way, and continue doing things the old way.  With recs, Emacs can
 recognize the old pattern when you use it, and suggest the new the
 pattern, training you to be a better Emacs user.
 
-<tt>recs-mode</tt> is a simple command suggestion minor-mode.  It
-works by recording the names of the commands you enter into a
-ring-like string which is then matched against a list of
-command-pattern regular expressions.  When a match is detected, recs
-suggests a more efficient way of doing things.  recs looks strictly at
-sequences of commands, not sequences of keystrokes, avoiding
-complications resulting from different keybindings in different modes.
+`recs-mode` is a simple command suggestion minor-mode.  It works by
+recording the names of the commands you enter into a ring-like string
+which is then matched against a list of command-pattern regular
+expressions.  When a match is detected, recs suggests a more efficient
+way of doing things.  recs looks strictly at sequences of commands,
+not sequences of keystrokes, avoiding complications resulting from
+different keybindings in different modes.
 
 The advantage of this approach is that we can match any command
 sequence that a regexp is powerful enough to match.
