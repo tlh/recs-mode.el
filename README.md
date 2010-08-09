@@ -30,10 +30,10 @@ sequences that a regexp is powerful enough to match.
    annoying, making it desirable to learn quickly.
 
  - A timer to set the minimum interval between suggestions, per the
-   Emacs TODO list ("C-h C-t") guidelines.
+   Emacs TODO list <tt>C-h C-t</tt> guidelines.
 
  - A hook that's run whenever a match is detected. This can be used in
-   conjunction with \`recs-suppress-suggestion' and
+   conjunction with <tt>`recs-suppress-suggestion'</tt> and
    <tt>`recs-ding-on-suggestion'</tt> to define completely different
    behavior on match detection.
 
@@ -43,8 +43,8 @@ sequences that a regexp is powerful enough to match.
 
  - add these lines to your <tt>.emacs</tt> file:
 
-        (require 'recs)
-        (recs-mode t)
+`(require 'recs)`
+`(recs-mode t)`
 
 
 ## Configuration
