@@ -136,6 +136,7 @@
 ;;         recs-suppress-suggestion
 ;;         recs-log-file
 ;;         recs-log-suggestions
+;;         recs-buffer-name
 ;;
 ;;    See the documentation for these variables in `recs-mode.el`, or
 ;;    enter:
@@ -215,6 +216,11 @@ do."
           "recs-patterns")
   "Filename of the file from which recs loads its pattern definitions."
   :type 'file
+  :group 'recs)
+
+(defcustom recs-buffer-name "*recs*"
+  "Name of the recs-mode suggestion buffer."
+  :type 'string
   :group 'recs)
 
 ;; Non-customizable variables
@@ -303,7 +309,7 @@ echo area.  Suggestion window selection is configured with
 `recs-window-select'."
   (if recs-suggestion-window
       (let ((help-window-select recs-window-select))
-        (with-help-window "*recs*" (recs-princ-suggestion match)))
+        (with-help-window recs-buffer-name (recs-princ-suggestion match)))
     (message (with-output-to-string (recs-princ-suggestion match)))))
 
 (defun recs-log-suggestion (match)
