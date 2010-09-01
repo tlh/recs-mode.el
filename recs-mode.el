@@ -29,12 +29,14 @@
 ;; recs-mode is a simple command suggestion minor mode for GNU
 ;; Emacs. recs-mode is free software, licensed under the GNU GPL.
 ;;
-;; The latest version of recs-mode can always be found [here][]. You
-;; can also clone the repo by running
+;; The latest version of recs-mode can always be found here:
+;;
+;;     http://github.com/tlh/recs-mode.el
+;;
+;; You can clone the repo by running:
 ;;
 ;;     git clone git://github.com/tlh/recs-mode.el
 ;;
-;;  [here]: http://github.com/tlh/recs-mode.el
 ;;
 ;; Say you discover a new, more efficient sequence of commands to do
 ;; something.  You want to start using it, but your muscle memory
@@ -67,18 +69,18 @@
 ;;    annoying, making it desirable to learn quickly.
 ;;
 ;;  - A timer to set the minimum interval between suggestions, per the
-;;    Emacs TODO list (`C-h C-t`) guidelines.
+;;    Emacs TODO list (C-h C-t) guidelines.
 ;;
 ;;  - A hook that's run whenever a match is detected. This can be used
-;;    in conjunction with `recs-suppress-suggestion` and
-;;    `recs-ding-on-suggestion` to define completely different
+;;    in conjunction with `recs-suppress-suggestion' and
+;;    `recs-ding-on-suggestion' to define completely different
 ;;    behavior on match detection.
 
 ;;; Installation:
 ;;
-;;  - put `recs-mode.el` somewhere on your Emacs load path
+;;  - put `recs-mode.el' somewhere on your Emacs load path
 ;;
-;;  - add these lines to your `.emacs` file:
+;;  - add these lines to your `.emacs' file:
 ;;
 ;;         (require 'recs-mode)
 ;;         (recs-mode t)
@@ -88,34 +90,42 @@
 ;;
 ;;  - recs-mode comes with a number of default patterns, but you should
 ;;    modify these to fit your usage.  The default patterns are stored in
-;;    the file `recs-patterns` that comes with recs-mode.  You should
-;;    copy that file somewhere sensible, like `~/.emacs.d/`, and
+;;    the file `recs-patterns.el' that comes with recs-mode.  You should
+;;    copy that file somewhere sensible, like `~/.emacs.d/', and
 ;;    customize it there.  You will need to set the value of
-;;    `recs-pattern-file` to the new location:
+;;    `recs-pattern-file' to the new location:
 ;;
 ;;         (setq recs-pattern-file "/path/to/new/recs-patterns")
 ;;
 ;;    A recs-mode pattern consists of a list containing a command
-;;    sequence regular expression, a suggestion message, and any number
-;;    of command name symbols:
+;;    sequence regular expression, an expression that is evaluated to
+;;    produce a suggestion message, and any number of command name
+;;    symbols:
 ;;
-;;         ("newline previous-line move-end-of-line"
-;;          "You should use `open-line' to do that."
-;;          open-line)
+;;         '("newline previous-line move-end-of-line"
+;;           "This suggestion is just a string, but it could\
+;;            be any lisp form that produces a string."
+;;           open-line)
 ;;
-;;         ("\\(some-command \\| some-other-command \\)+newline yank"
-;;          "You should use `better-command' or `even-better-command'
-;;           to do that."
-;;          better-command
-;;          even-better-command)
+;;    Patterns must be added to the list `recs-patterns'. You can use
+;;    the convenience function `recs-add-pattern' to do that:
 ;;
-;;    Commands listed in suggestions should be quoted like `\`this'`,
-;;    allowing emacs' help system to link to its documentation.
+;;         (recs-add-pattern
+;;           (list "\\(some-command \\| some-other-command \\)+newline yank"
+;;                 '(progn "You should use `better-command' to do that.")
+;;                 'better-command))
+;;
+;;    Notice above that the suggestion expression is a progn form, not
+;;    just a string.  If the form evaluates to nil, no suggestion is
+;;    triggered.
+;;
+;;    Commands listed in suggestions should be quoted like `this',
+;;    allowing emacs' help system to link to their docstrings.
 ;;    recs-mode will print the keybindings, if they exist, of the
 ;;    commands at the end of the list.  These should typically be the
 ;;    same ones that are quoted in the suggestion message.
 ;;
-;;    After modifying the contents of `recs-pattern-file` you will need
+;;    After modifying the contents of `recs-pattern-file' you will need
 ;;    to reload the file for the changes to take effect.  You can do that
 ;;    either by toggling recs-mode off and on with two invocations of:
 ;;
@@ -138,8 +148,7 @@
 ;;         recs-log-suggestions
 ;;         recs-buffer-name
 ;;
-;;    See the documentation for these variables in `recs-mode.el`, or
-;;    enter:
+;;    See the documentation for these variables below, or enter:
 ;;
 ;;         C-u M-x customize-mode RET recs-mode RET
 
@@ -151,38 +160,38 @@
 ;; Customization
 
 (defgroup recs nil
-  "[R]egular [E]xpression-based [C]ommand [S]uggester: a command
-suggestion minor mode."
+  "The [R]egular [E]xpression-based [C]ommand [S]uggester
+A command suggestion minor mode for GNU Emacs."
   :group 'help
   :version "1.0")
 
 (defcustom recs-cmdstr-max 500
-  "Max length of `recs-cmdstr'.  Increase this number in order to
-be able to detect longer patterns of commands."
+  "Max length of `recs-cmdstr'.
+Increase this number in order to be able to detect longer
+patterns of commands."
   :type 'integer
   :group 'recs)
 
 (defcustom recs-suggestion-interval nil
-  "This defines the minimum number of seconds between
-suggestions.  If nil, no time checking is performed."
+  "Minimum number of seconds between suggestions.
+If nil, no time checking is performed."
   :type 'boolean
   :group 'recs)
 
 (defcustom recs-ding-on-suggestion t
-  "Defines whether to call `ding' when a suggestion is made."
+  "Whether to `ding' when a suggestion is made."
   :type 'boolean
   :group 'recs)
 
 (defcustom recs-suggestion-window nil
-  "NIL means display suggestion in the echo area.  t means
-display suggestion in a separate window.  Window selection is
-defined by `recs-window-select'."
+  "When nil, display suggestions in the echo area.
+When t, display suggestions in a separate window.  Window
+selection is defined by `recs-window-select'."
   :type 'boolean
   :group 'recs)
 
 (defcustom recs-window-select nil
-  "Acceptable values correspond to those for
-`help-window-select'."
+  "Behaves identically to `help-window-select'."
   :type 'symbol
   :group 'recs)
 
@@ -192,62 +201,67 @@ defined by `recs-window-select'."
   :group 'recs)
 
 (defcustom recs-suppress-suggestion nil
-  "NIL means normal suggestions behavior.  t means recs won't
-actually make a suggestion when a match is found.  This can be
-used in conjunction with `recs-mode-hook' to define your own
-behavior on match."
+  "When nil, trigger suggestions normally.
+When t, recs-mode doesn't actually make a suggestion when a match
+is detected.  This can be used in conjunction with
+`recs-mode-hook' to define new behavior on match."
   :type 'boolean
   :group 'recs)
 
 (defcustom recs-log-file "~/.emacs.d/recs-log"
-  "Filename to which recs will log triggered suggestions if
-`recs-log-suggestions' is non-nil."
+  "File to which `recs-mode' will log suggestions.
+Logging occurs when `recs-log-suggestions' is non-nil."
   :type 'file
   :group 'recs)
 
-(defcustom recs-log-suggestions nil
-  "NIL means don't log suggestions to `recs-log-file'. Otherwise,
-do."
+(defcustom recs-log-suggestions t
+  "When non-nil, log suggestions to `recs-log-file'.
+When nil, do not."
   :type 'boolean
   :group 'recs)
 
-(defcustom recs-pattern-file
-  (concat (file-name-directory (locate-library "recs-mode"))
-          "recs-patterns")
-  "Filename of the file from which recs loads its pattern definitions."
+(defcustom recs-pattern-file (locate-library "recs-patterns")
+  "File from which `recs-mode' loads its pattern definitions."
   :type 'file
   :group 'recs)
 
-(defcustom recs-buffer-name "*recs*"
-  "Name of the recs-mode suggestion buffer."
+(defcustom recs-buffer-name "*recs-mode-suggestions*"
+  "Name of the `recs-mode' suggestion buffer."
   :type 'string
   :group 'recs)
 
 ;; Non-customizable variables
 
 (defvar recs-patterns nil
-  "A list of lists, each consisting of a command sequence regexp,
-a suggestion message, and any number of command name symbols for
-which keybindings will be printed.")
+  "List of `recs-mode' pattern definitions.
+It's a list of lists of a command sequence regexp, a suggestion
+form, and any number of command name symbols for which
+keybindings will be printed.")
 
 (defvar recs-cmdstr ""
-  "This is a ring-like string composed of the names of the most
-recently entered commands, with the recent being appended to the
-end.  Its length should never exceed `recs-cmdstr-max'.")
+  "String of names of the most recent commands.
+Newly entered command names are appended to the end, including a
+trailing space.  Its length will never exceed `recs-cmdstr-max'.")
 
 (defvar recs-last-suggestion-time nil
-  "System seconds at which the last suggestion occured.")
+  "System time (in seconds) when the last suggestion occured.")
 
 ;; Functions
+
+(defun recs-add-pattern (pattern)
+  "Convenience function to add PATTERN to `recs-patterns'.
+It uses `add-to-list' so, only unique patterns are added."
+  (add-to-list 'recs-patterns pattern))
 
 (defun recs-current-time ()
   "Return abbreviated `current-time' in seconds."
   (cadr (current-time)))
 
 (defun recs-check-time ()
-  "Return t if `recs-suggestion-interval' is nil, if
+  "Check that enough time has elapsed since the last suggestion.
+Return t if `recs-suggestion-interval' is nil, if
 `recs-last-suggestion-time' is nil or if the sum of the previous
-two has been superceded, nil otherwise."
+two has been superceded. Otherwise return nil."
   (or (not recs-suggestion-interval)
       (not recs-last-suggestion-time)
       (>=  (recs-current-time)
@@ -255,8 +269,7 @@ two has been superceded, nil otherwise."
               recs-suggestion-interval))))
 
 (defun recs-record-time ()
-  "Set `recs-last-suggestion-time' with the current time in
-seconds."
+  "Set `recs-last-suggestion-time' with `recs-current-time'."
   (setq recs-last-suggestion-time (recs-current-time)))
 
 (defun recs-reset-cmdstr ()
@@ -264,9 +277,10 @@ seconds."
   (setq recs-cmdstr ""))
 
 (defun recs-record-cmd ()
-  "Append to `recs-cmdstr' the print name of
-`this-original-command' with a trailing space, and chop off the
-front if it exceeds `recs-cmdstr-max'."
+  "Append `this-original-command' to `recs-cmdstr'.
+The printed name of the command, including a trailing space, is
+used.  Chop off the front of `recs-cmdstr' if it exceeds
+`recs-cmdstr-max'."
   (let* ((new (format "%s " this-original-command))
          (str (concat recs-cmdstr new))
          (len (length str)))
@@ -275,20 +289,30 @@ front if it exceeds `recs-cmdstr-max'."
                         str))))
 
 (defun recs-detect-match ()
-  "Attempt to match `recs-cmdstr' against all the regexps in
-`recs-patterns'.  Return a list of the matched string, the
-pattern and the suggestion message when a match is found, nil
-otherwise."
+  "Match `recs-cmdstr' against the regexps in `recs-patterns'.
+If a match is found, and the suggestion form evaluates to
+non-nil, return a list of the matched string, the regexp, the
+result of the evaluation of the suggestion form, and any
+command-name symbols from the end of the suggestion definition.
+Keep in mind that `pattern' will be bound to the pattern
+definition within the body of the suggestion form, if you need
+values from it."
   (catch 'result
     (let (case-fold-search)
-      (dolist (pattern recs-patterns nil)
-        (and (string-match (car pattern) recs-cmdstr)
-             (throw 'result (cons (match-string 0 recs-cmdstr)
-                                  pattern)))))))
+      (dolist (pattern recs-patterns)
+        (when (string-match (car pattern) recs-cmdstr)
+          (let ((sug (eval (nth 1 pattern))))
+            (when sug
+              (throw 'result
+                     (append (list (match-string 0 recs-cmdstr)
+                                   (car pattern)
+                                   sug)
+                             (cddr pattern))))))))))
 
 (defun recs-princ-suggestion (match)
-  "Generate from MATCH and princ the suggestion.  Bind
-`standard-output' to the desired destination before calling."
+  "Generate from MATCH and princ the suggestion.
+Bind `standard-output' to the desired destination before
+calling."
   (flet ((mprinc (&rest args) (mapc 'princ args)))
     (mprinc "You entered the command sequence:\n\n["
             (car match) "]\n\n" (caddr match) "\n\n")
@@ -303,10 +327,10 @@ otherwise."
       (princ "\n"))))
 
 (defun recs-suggest (match)
-  "Display the suggestion generated from MATCH in a separate
-buffer if `recs-suggestion-window' is non-nil, otherwise in the
-echo area.  Suggestion window selection is configured with
-`recs-window-select'."
+  "Output the suggestion generated from MATCH.
+Display it in a separate buffer if `recs-suggestion-window' is
+non-nil, otherwise in the echo area.  Suggestion window selection
+is configured with `recs-window-select'."
   (if recs-suggestion-window
       (let ((help-window-select recs-window-select))
         (with-help-window recs-buffer-name (recs-princ-suggestion match)))
@@ -319,24 +343,15 @@ echo area.  Suggestion window selection is configured with
       (insert (format "%S\n" match))
       (append-to-file (point-min) (point-max) recs-log-file))))
 
-(defun recs-load-pattern-file ()
-  "Create a list of all the pattern definitions in
-`recs-pattern-file' and assign it to `recs-patterns'."
+(defun recs-load-pattern-file (&optional file)
+  "Load FILE or `recs-pattern-file'.
+Set `recs-patterns' to nil first."
   (interactive)
-  (if (file-exists-p recs-pattern-file)
-      (with-temp-buffer
-        (let (pattern patterns make-backup-files)
-          (insert-file-contents recs-pattern-file)
-          (goto-char (point-min))
-          (ignore-errors
-            (while (setq pattern (read (current-buffer)))
-              (push pattern patterns)))
-          (setq recs-patterns (nreverse patterns))))
-    (error "`recs-pattern-file' does not exist")))
+  (setq recs-patterns nil)
+  (load-library (or file recs-pattern-file)))
 
 (defun recs-hook-fn ()
-  "This is the hook function that gets added to
-`post-command-hook'."
+  "This is the hook function added to `post-command-hook'."
   (when (recs-check-time)
     (recs-record-cmd)
     (let ((match (recs-detect-match)))
@@ -346,17 +361,19 @@ echo area.  Suggestion window selection is configured with
         (run-hooks 'recs-mode-hook)
         (and recs-ding-on-suggestion (ding))
         (and recs-log-suggestions (recs-log-suggestion match))
-        (or recs-suppress-suggestion
-            (recs-suggest match))))))
+        (unless recs-suppress-suggestion
+          (recs-suggest match))))))
 
 (defun recs-enable (enable)
   "Enable `recs-mode' when ENABLE is t, disable otherwise."
-  (cond (enable (add-hook 'post-command-hook 'recs-hook-fn)
-                (recs-reset-cmdstr)
-                (recs-load-pattern-file)
-                (setq recs-mode t))
-        (t      (remove-hook 'post-command-hook 'recs-hook-fn)
-                (setq recs-mode nil))))
+  (cond (enable
+         (add-hook 'post-command-hook 'recs-hook-fn)
+         (recs-reset-cmdstr)
+         (recs-load-pattern-file)
+         (setq recs-mode t))
+        (t
+         (remove-hook 'post-command-hook 'recs-hook-fn)
+         (setq recs-mode nil))))
 
 ;; mode definition
 
@@ -371,9 +388,9 @@ Otherwise, turn off recs-mode."
   :init-value  nil
   :global      t
   :group       'recs
-  (cond (noninteractive   (recs-enable nil))
-        (recs-mode        (recs-enable t))
-        (t                (recs-enable nil))))
+  (cond (noninteractive (recs-enable nil))
+        (recs-mode      (recs-enable t))
+        (t              (recs-enable nil))))
 
 (provide 'recs-mode)
 

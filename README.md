@@ -40,79 +40,12 @@ sequences that a regexp is powerful enough to match.
    annoying, making it desirable to learn quickly.
 
  - A timer to set the minimum interval between suggestions, per the
-   Emacs TODO list (`C-h C-t`) guidelines.
+   Emacs TODO list (C-h C-t) guidelines.
 
- - A hook that's run whenever a match is detected. This can be used in
-   conjunction with `recs-suppress-suggestion` and
-   `recs-ding-on-suggestion` to define completely different behavior
-   on match detection.
+## Installation and Configuration
 
-## Installation
-
- - put `recs-mode.el` somewhere on your Emacs load path
-
- - add these lines to your `.emacs` file:
-
-        (require 'recs-mode)
-        (recs-mode t)
-
-## Configuration
-
- - recs-mode comes with a number of default patterns, but you should
-   modify these to fit your usage.  The default patterns are stored in
-   the file `recs-patterns` that comes with recs-mode.  You should
-   copy that file somewhere sensible, like `~/.emacs.d/`, and
-   customize it there.  You will need to set the value of
-   `recs-pattern-file` to the new location:
-
-        (setq recs-pattern-file "/path/to/new/recs-patterns")
-
-   A recs-mode pattern consists of a list containing a command
-   sequence regular expression, a suggestion message, and any number
-   of command name symbols:
-
-        ("newline previous-line move-end-of-line"
-         "You should use `open-line' to do that."
-         open-line)
-
-        ("\\(some-command \\| some-other-command \\)+newline yank"
-         "You should use `better-command' or `even-better-command'
-          to do that."
-         better-command
-         even-better-command)
-
-   Commands listed in suggestions should be quoted like `\`this'`,
-   allowing emacs' help system to link to its documentation.
-   recs-mode will print the keybindings, if they exist, of the
-   commands at the end of the list.  These should typically be the
-   same ones that are quoted in the suggestion message.
-
-   After modifying the contents of `recs-pattern-file` you will need
-   to reload the file for the changes to take effect.  You can do that
-   either by toggling recs-mode off and on with two invocations of:
-
-        M-x recs-mode
-
-   or by issuing the command:
-
-        M-x recs-load-pattern-file
-
- - Other customizable variables include:
-
-        recs-cmdstr-max
-        recs-suggestion-interval
-        recs-ding-on-suggestion
-        recs-suggestion-window
-        recs-window-select
-        recs-mode-hook
-        recs-suppress-suggestion
-        recs-log-file
-        recs-log-suggestions
-
-   See the documentation for these variables in `recs-mode.el`, or
-   enter:
-
-        C-u M-x customize-mode RET recs-mode RET
+ - See the comments at the beginning of recs-mode.el for installation
+   and configuration information.
 
 ## License
 
